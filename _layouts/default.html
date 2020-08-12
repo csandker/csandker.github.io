@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en-us">
+
+  {% include head.html %}
+
+  <body>
+
+    {% include sidebar.html %}
+    <div class="sidebar-stripes"></div>
+
+    <div class="content container">
+      {{ content }}
+    </div>
+
+    <!-- The Modal -->
+    <div id="imageModal" class="modal">
+
+      <!-- The Close Button -->
+      <span class="close">&times;</span>
+
+      <!-- Modal Content (The Image) -->
+      <img class="modal-content" id="imgModal">
+    </div>
+  </body>
+</html>

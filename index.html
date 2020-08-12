@@ -1,1 +1,26 @@
-Incoming...
+---
+layout: default
+---
+
+<h1 class="page-title">//Posts</h1>
+
+{% for post in site.posts %}
+    {% if post.title != null %}
+        <div class="home post-preview">
+            <div class="home post-preview-head">
+                <a class="home" href="{{ post.url }}">
+                    <span>{{post.title}}</span>
+                </a>
+                <span class="float-right">{{ post.date | date: "%Y-%m-%d"}}</span>
+            </div>
+            {% if post.abstract %}
+                <div class="home post-preview-abstract">
+                    <span class="abstract-text">{{post.abstract}}</span>
+                    <a href="{{ post.url }}" class="float-right abstract-readmore">Read more...</a>
+                </div>
+            {% endif %}
+        </div>
+        <span></span>
+        
+    {% endif %}
+{% endfor %}

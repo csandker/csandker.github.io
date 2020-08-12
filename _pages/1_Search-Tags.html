@@ -1,0 +1,48 @@
+---
+layout: page
+title: //Tags & Search
+permalink: /find/
+---
+
+<div class="page">
+    <h3 class="page-title">Search</h3>
+    
+    <!-- SEARCH -->
+    <!-- Html Elements for Search -->
+    <div id="search-container">
+        <input type="text" id="search-input" placeholder="Search for NTLM, Kerberos, Powershell, ...">
+        <ul id="results-container"></ul>
+    </div>
+        
+    <!-- Script pointing to search-script.js -->
+    <script type="text/javascript" src="/public/js/simplesearch.min.js"></script>
+        
+    <!-- Configuration -->
+    <script>
+    SimpleJekyllSearch({
+        searchInput: document.getElementById('search-input'),
+        resultsContainer: document.getElementById('results-container'),
+        json: '/public/json/search.json'
+    })
+    </script>
+
+    <!-- TAGS -->
+    <hr>
+    <!-- <h2 class="page-title">Tags</h2> -->
+    {% assign alldocs = site.posts %}	
+    {% assign grouptag =  alldocs | map: 'tags' | join: ','  | split: ','  | group_by: tag %}
+    {%- for tag in grouptag -%}
+        <h3>{{tag.name }}</h3>
+        {%- for document in alldocs -%}
+            <ul>
+                {% if document.tags contains tag.name %}
+                    <li>
+                        <a href="{{document.url}}">{{ document.title }}</a>
+                        <small class="date">{{ document.date | date_to_string }}</small>
+                    </li>
+                    {% endif %}
+            </ul>
+        {%- endfor -%}
+    {%- endfor -%}
+
+</div>

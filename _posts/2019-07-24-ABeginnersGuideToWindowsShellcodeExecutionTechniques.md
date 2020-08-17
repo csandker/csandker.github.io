@@ -6,6 +6,11 @@ abstract: "This blog post is aimed to cover basic techniques of how to execute s
 tags: Exploit
 ---
 
+## Contents:
+{: .no_toc .toc-header}
+* TOC
+{:toc}
+
 >I published this post originally  at [https://www.contextis.com/en/blog/a-beginners-guide-to-windows-shellcode-execution-techniques](https://www.contextis.com/en/blog/a-beginners-guide-to-windows-shellcode-execution-techniques)
 
 This blog post is aimed to cover basic techniques of how to execute shellcode within the memory space of a process. The background idea for this post is simple: New techniques to achieve stealthy code execution appear every day and it’s not always trivial to break these new concepts into their basic parts to understand how they work. By explaining basic concepts of In-Memory code execution i'm aiming to improve everyone’s ability to do this.

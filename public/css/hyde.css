@@ -332,9 +332,16 @@ a.sidebar-nav-item:focus {
 POSTS 
 
 */
+.post h2, h3, h4, h5 h6 {
+  position: relative;
+}
 .post h2 {
   border-top: 1px dotted black;
   padding-top: 20px;
+}
+
+.post a.aal_anchor {
+  margin-left: 10px;
 }
 
 .post table td {
@@ -428,4 +435,25 @@ SEARCH
 
 .about-me .icon {
   margin-right: 3px;
+}
+
+/* TOC 
+
+*/
+
+ul#markdown-toc  {
+  padding-left: 20px;
+}
+
+ul#markdown-toc ul {
+  padding-left: 25px;
+}
+
+h2.toc-header  {
+  border-top: none;
+  padding-top: 0px;
+}
+
+h2.toc-header .aal_anchor {
+  display: none;
 }

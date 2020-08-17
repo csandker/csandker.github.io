@@ -7,6 +7,11 @@ In other words: Delegation specifies the client's action to authorize a server i
 tags: Kerberos Wrap-Up
 ---
 
+## Contents:
+{: .no_toc .toc-header}
+* TOC
+{:toc}
+
 *There many good posts about Kerberos Delegation, explaining the backgrounds, underlying concepts and terminology of it. This post is is a wrap-up of Kerberos Delegation and unlike other posts it will not dig into where it came from and lay out surrounding concepts.*<br>
 *Most important: This wrap-up assume the reader is aware of the environment that Kerberos Delegation takes place in.*<br>
 **If you need a fresh-up on this read through [Kerberos Authentication: A Wrap Up]({% post_url 2017-09-12-KerberosAuthenticationAWrapUp %})**

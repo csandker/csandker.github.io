@@ -6,6 +6,11 @@ abstract: "Microsoft’s SPNEGO protocol is a less well known sub protocol used 
 tags: Kerberos NTLM Exploit
 ---
 
+## Contents:
+{: .no_toc .toc-header}
+* TOC
+{:toc}
+
 >I published this post originally  at [https://www.contextis.com/en/blog/downgrade-spnego-authentication](https://www.contextis.com/en/blog/downgrade-spnego-authentication)
 
 Microsoft’s SPNEGO protocol is a less well known sub protocol used by better known protocols to negotiate authentication. This blog post covers weaknesses i've discovered in SPNEGO and leverages this to highlight an inconsistency in the SMBv2 protocol, both of which lead to user credentials being sent over the wire in a way which makes them vulnerable to offline cracking.<br>

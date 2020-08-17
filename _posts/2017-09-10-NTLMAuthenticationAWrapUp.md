@@ -6,6 +6,11 @@ abstract: "This post is intended as a wrap-up to refresh/update your understandi
 tags: NTLM Wrap-Up
 ---
 
+## Contents:
+{: .no_toc .toc-header}
+* TOC
+{:toc}
+
 This post is intended as a wrap-up to refresh/update your understanding of how the NTLM authentication scheme works in a Windows domain network.
 
 If you want to dive heads deep into the specification and drill down on all the different messages and FLAGs, this link will lead you the MS-NLMP specification:

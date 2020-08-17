@@ -6,6 +6,11 @@ abstract: "This post is intended as a wrap-up to refresh/update your understandi
 tags: Kerberos Wrap-Up
 ---
 
+## Contents:
+{: .no_toc .toc-header}
+* TOC
+{:toc}
+
 This post is intended as a wrap-up to refresh/update your understanding of how Kerberos works in a Windows domain network.
 
 If you want the full picture right from the source check out this post from the Microsoft docs:
@@ -151,7 +156,7 @@ The answer is: You will be able to Kerberoast that user now.
 
 If you hold write access to a user's properties (*GenericAll* or *GenericWrite* Access) you can set an SPN for that user and make it Kerberoastable.
 
-## AS-REP Roasting
+### AS-REP Roasting
 
 AS-REP Roasting is a little less known, but follows the same idea Kerberoasting is based on, which is: Crack a user's password contained in a ticket.
 

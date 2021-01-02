@@ -6,6 +6,7 @@ title: Home
 <h1 class="page-title">//Posts</h1>
 
 {% for post in site.posts %}
+    {{ post.url }}
     {% if post.title != null %}
         <div class="home post-preview">
             <div class="home post-preview-head">

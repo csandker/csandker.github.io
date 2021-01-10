@@ -119,6 +119,10 @@ ul, ol, dl {
   margin-bottom: 1rem;
 }
 
+li ul {
+  margin-bottom: inherit; /* Avoid bottom margin in nested ul's */
+}
+
 dt {
   font-weight: bold;
 }

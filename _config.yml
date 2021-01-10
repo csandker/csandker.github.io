@@ -27,6 +27,10 @@ github:
   user: csandker
   url: "https://github.com/csandker"
 
+feed:
+  tagname: RSS Feed
+  url: "/feed.xml"
+
 # Exclude from processing.
 # The following items will not be processed, by default. Create a custom list
 # to override the default setting.

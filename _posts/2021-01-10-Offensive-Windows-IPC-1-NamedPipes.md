@@ -324,6 +324,10 @@ bSuccess = DuplicateTokenEx(hToken,
 CreateProcessWithTokenW(hDuppedToken, LOGON_WITH_PROFILE, command, NULL, CREATE_NEW_CONSOLE, NULL, NULL, &si, &pi);
 ```
 
+The result can be seen below:
+
+![NamedPipe Impersonation](/public/img/2021-01-10-Offensive-Windows-IPC-1-NamedPipes/NamedPipe_Impersonation.png)
+
 There are some catches when you implement this on your own:
 - When you create a process with [CreateProcessWithTokenW](https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createprocesswithtokenw), you need to [RevertToSelf](https://docs.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-reverttoself) before calling *CreateProcessWithTokenW* otherwise you'll receive an error.
 - When you want to create a window based process (something with a window that pops up, such as calc.exe or cmd.exe) you need to grant the client access to your Window and Desktop. A sample implementation allowing all users to access to your Window and Desktop can be found [here](https://github.com/csandker/InterProcessCommunication-Samples/blob/master/NamedPipes/CPP-NamedPipe-Basic-Client-Server/CPP-Util/Access.cpp).

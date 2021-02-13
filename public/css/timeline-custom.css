@@ -1,9 +1,6 @@
 /*
     CUSTOM ADDITIONS to timeline
 */
-.timeline span p {
-    margin-left: 10%;
-}
 
 .timeline p post {
     display: block;
@@ -15,6 +12,15 @@
 /* .timeline__content__wrap {
     text-align: right;
 } */
+
+.timeline__content .tab1 {
+    margin-left: 10%;
+}
+
+.timeline__content .eof {
+    opacity: 0.5;
+}
+
 
 @media (min-width: 98em) {
     .timeline__content {

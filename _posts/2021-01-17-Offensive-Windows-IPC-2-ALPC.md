@@ -30,4 +30,20 @@ Or we have a look ourselves by:
 
 
 Reference Projects:
+ALPC
 - https://github.com/microsoft/terminal/blob/main/src/interactivity/onecore/ConIoSrvComm.cpp
+- https://github.com/DownWithUp/ALPC-Example
+- https://github.com/DynamoRIO/drmemory
+- https://github.com/hakril/PythonForWindows
+- https://docs.rs/
+- https://github.com/googleprojectzero/sandbox-attacksurface-analysis-tools
+- https://processhacker.sourceforge.io/doc/ntlpcapi_8h.html
+- https://github.com/bnagy/w32
+- https://github.com/taviso/ctftool
+
+TALKS
+- https://infocon.org/cons/SyScan/SyScan%202014%20Singapore/SyScan%202014%20presentations/SyScan2014_AlexIonescu_AllabouttheRPCLRPCALPCandLPCinyourPC.pdf
+- https://conference.hitb.org/hitbsecconf2014kul/materials/D2T1%20-%20Ben%20Nagy%20-%20ALPC%20Fuzzing%20Toolkit.pdf
+
+LPC: 
+- https://github.com/avalon1610/LPC

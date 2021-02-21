@@ -1,0 +1,39 @@
+/*
+    CUSTOM ADDITIONS to timeline
+*/
+
+.timeline p post {
+    display: block;
+    margin-left: 10%;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+/* .timeline__content__wrap {
+    text-align: right;
+} */
+
+.timeline__content .tab1 {
+    margin-left: 10%;
+}
+
+.timeline__content .eof {
+    opacity: 0.5;
+}
+
+
+@media (min-width: 98em) {
+    .timeline__content {
+        display: inline-block;
+    }
+    .timeline__item {
+        display: inline-block;
+    }
+    .timeline__item--right .timeline__item__inner {
+        float: left;
+    }
+    
+    .timeline__item--left .timeline__item__inner {
+        float: right;
+    }
+}

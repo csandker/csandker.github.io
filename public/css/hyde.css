@@ -189,9 +189,9 @@ a.sidebar-nav-item:focus {
 @media (min-width: 48em) {
   .content {
     /* max-width: 38rem; */
-    max-width: 60%;
     margin-left: 20rem;
     margin-right: 2rem;
+    max-width: 60%;
   }
 }
 
@@ -199,6 +199,7 @@ a.sidebar-nav-item:focus {
   .content {
     margin-left: 22rem;
     margin-right: 4rem;
+    max-width: 60%;
   }
 }
 
@@ -387,6 +388,27 @@ POSTS
 }
 .post pre.highlight .nv {
   color: #dfdfdf;
+}
+
+.post pre.highlight .nf {
+  color: #6ab8ca;
+}
+
+.post pre.highlight .s2 {
+  color: #d44950;
+}
+
+.post pre.highlight .nt {
+  color: #4dacf2;
+}
+
+.post pre.highlight .err {
+  color: #f03131;
+  background-color: inherit;
+}
+
+.post pre.highlight .nx {
+  color: #abd5f5;
 }
 
 .post table {

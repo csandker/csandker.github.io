@@ -119,9 +119,8 @@ ul, ol, dl {
   margin-bottom: 1rem;
 }
 
-/*don't add extra bottom margin in nested ul*/
 li ul {
-  margin-bottom: inherit;
+  margin-bottom: inherit; /* Avoid bottom margin in nested ul's */
 }
 
 dt {

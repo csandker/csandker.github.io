@@ -3,7 +3,7 @@ layout:	post
 title:	"Offensive Windows IPC Internals 2: RPC"
 date:	2021-02-21 10:00:00 +0200
 abstract: "*Remote Procedure Calls (RPC) is a technology to enable data communication between a client and a server across process and machine boundaries (network communication). Therefore RPC is an Inter Process Communication (IPC) technology..."
-tags: IPC
+tags: IPC WinInternals
 ---
 
 ## Contents:
@@ -33,7 +33,8 @@ Moreover a RPC server does not need to be on a remote machine, but could as well
 Within this blog post you can join me in discovering the insides of RPC, how it works & operates and how to implement and attack RPC clients and servers.<br>
 This post is is made from an offensive view point and tries to cover the most relevant aspects the attack surface of RPC from an attackers perspective. A more defensive geared view on RPC can for example be found at [https://ipc-research.readthedocs.io/en/latest/subpages/RPC.html](https://ipc-research.readthedocs.io/en/latest/subpages/RPC.html) by [Jonathan Johnson](https://twitter.com/jsecurity101)
 
-The below post will contain some references to code from my sample implementations, all of this code can be found here: [https://githuber.com/csandker/TODO](https://githuber.com/csandker/TODO)
+The below post will contain some references to code from my sample implementations, all of this code can be found here:<br>
+[https://github.com/csandker/InterProcessCommunication-Samples/tree/master/RPC/CPP-RPC-Client-Server](https://github.com/csandker/InterProcessCommunication-Samples/tree/master/RPC/CPP-RPC-Client-Server)
 
 ## History
 
@@ -95,7 +96,7 @@ The most relevant protocol sequences are shown below:
 In order to establish a communication channel the RPC runtime needs to know what methods (aka. "functions") and parameters your server offers and what data your client is sending. These information are defined in a so called "Interface".<br>
 *Side note: If you're familiar with interfaces in COM, this is the same thing.*
 
-To get an idea of how an interface could be defined, let's take this example from my [Sample Code](TODO):
+To get an idea of how an interface could be defined, let's take this example from my [Sample Code](https://github.com/csandker/InterProcessCommunication-Samples/blob/master/RPC/CPP-RPC-Client-Server/RPC-Interface1/Interface1-Implicit.idl):
 
 **Interface1.idl**
 ```c++
@@ -141,8 +142,8 @@ The terminology of **binding handles** gets clearer once we put some context on 
 
 Side note: You could implement custom binding handles as described in [here](https://docs.microsoft.com/en-us/windows/win32/rpc/primitive-and-custom-binding-handles), but we ignore this for this post, as this is rather uncommon and you're good with the default types.
 
-**Implicit binding handles** allow your client to connect to and communicate with a specific RPC server (specified by the UUID in the IDL file). The downside is implicit bindings are not thread safe, multi-threaded applications should therefore use explicit bindings. Implicit binding handles are defined in the IDL file as shown in the sample IDL code above or in my [Sample Implicit Interface](TODO).<br>
-**Explicit binding handles** allow your client to connect to and communicate with multiple RPC servers. Explicit binding handles are recommended to use due to being thread safe and allow for multiple connections. An example of an explicit binding handle definition can be found in my code [here](TODO).<br>
+**Implicit binding handles** allow your client to connect to and communicate with a specific RPC server (specified by the UUID in the IDL file). The downside is implicit bindings are not thread safe, multi-threaded applications should therefore use explicit bindings. Implicit binding handles are defined in the IDL file as shown in the sample IDL code above or in my [Sample Implicit Interface](https://github.com/csandker/InterProcessCommunication-Samples/blob/master/RPC/CPP-RPC-Client-Server/RPC-Interface1/Interface1-Implicit.idl).<br>
+**Explicit binding handles** allow your client to connect to and communicate with multiple RPC servers. Explicit binding handles are recommended to use due to being thread safe and allow for multiple connections. An example of an explicit binding handle definition can be found in my code [here](https://github.com/csandker/InterProcessCommunication-Samples/blob/master/RPC/CPP-RPC-Client-Server/RPC-Interface1/Interface1-Explicit.idl).<br>
 **Automatic binding** is a solution in between for the lazy developer, who doesn't want to fiddle around with binding handles and let the RPC runtime figure out what is needed. My recommendation would be to use explicit handles just to be aware of what you're doing.
 
 Why do i need binding handles in the first place you might ask at this point.<br>
@@ -219,7 +220,7 @@ Example: You wouldn't be able to determine if the client is for example a valid 
 Okay so how do you specify an authenticated binding?<br>
 You <u>can</u> authenticate your binding on the server and on the client side. On the server side you want to implement this to ensure a secured connection and on the client side you might need to have this in order to be able to connect to your server (as we'll see shortly in the [Access Matrix](#access-matrix))
 
-**Authenticating the binding on the Server side:** [Taken from my example code [here](TODO)]
+**Authenticating the binding on the Server side:** [Taken from my example code [here](https://github.com/csandker/InterProcessCommunication-Samples/blob/master/RPC/CPP-RPC-Client-Server/RPC-Server1-Explicit-SecurityCallback-Auth/RPC-Server-Explicit-SecurityCallback-Auth.cpp#L179)]
 ```c++
 RPC_STATUS rpcStatus = RpcServerRegisterAuthInfo(
     pszSpn,             // Server principal name
@@ -229,7 +230,7 @@ RPC_STATUS rpcStatus = RpcServerRegisterAuthInfo(
 );
 ```
 
-**Authenticating the binding on the client side:** [Taken from my example code [here](TODO)]
+**Authenticating the binding on the client side:** [Taken from my example code [here](https://github.com/csandker/InterProcessCommunication-Samples/blob/master/RPC/CPP-RPC-Client-Server/RPC-Client1-Explicit-Auth-QOS/RPC-Client1-Explicit-Auth-QOS.cpp#L84)]
 ```c++
 RPC_STATUS status = RpcBindingSetAuthInfoEx(
     hExplicitBinding,		// the client's binding handle
@@ -356,7 +357,8 @@ To wrap up all of the above, the communication flow can be summarized as follows
 
 ### Sample Implementation
 
-As mentioned in the beginning the examples above are taken from my sample implementation, publicly available at [https://githuber.com/csandker/TODO](https://githuber.com/csandker/TODO).<br>
+As mentioned in the beginning the examples above are taken from my sample implementation, publicly available at: <br>
+[https://github.com/csandker/InterProcessCommunication-Samples/tree/master/RPC/CPP-RPC-Client-Server](https://github.com/csandker/InterProcessCommunication-Samples/tree/master/RPC/CPP-RPC-Client-Server).<br>
 In this repo you will find the following sample implementations:
 - Basic unauthenticated Server supporting unauthenticated Implicit Bindings
 - Basic unauthenticated Client supporting unauthenticated Implicit Bindings
@@ -409,11 +411,11 @@ Microsoft has a test utility called [PortQry](https://www.microsoft.com/en-us/do
 This tool gives you some information about remote RPC interfaces that the Endpoint Mapper knows about (remember that [Well-known Endpoints](#well-known-vs-dynamic-endpoints) do not have to inform the Endpoint Mapper about their interfaces).
 
 Another option is to query the Endpoint Manager directly by calling [RpcMgmtEpEltInqBegin](https://docs.microsoft.com/en-us/windows/win32/api/rpcdce/nf-rpcdce-rpcmgmtepeltinqbegin) and iterating over the interfaces via [RpcMgmtEpEltInqNext](https://docs.microsoft.com/en-us/windows/win32/api/rpcdce/nf-rpcdce-rpcmgmtepeltinqnext). A sample implementation, named **RPCDump**, of this approach was included in Chris McNab's amazing book '*Network Security Assessment*', O'Reilly published the tool written in C [here](https://resources.oreilly.com/examples/9780596510305/blob/master/tools/rpctools/rpcdump/rpcdump.c) (according to the comment annotation credits for this code should go to Todd Sabin).<br>
-I have ported this cool tool to VC++ and made some slight usability changes. I've published my fork at [TODO](TODO). 
+I have ported this cool tool to VC++ and made some slight usability changes. I've published my fork at [https://github.com/csandker/RPCDump](https://github.com/csandker/RPCDump). 
 
 ![RPC Dump](/public/img/2021-02-21-Offensive-Windows-IPC-2-RPC/RPC_Dump.png)
 
-As shown this tool also list the interfaces of the found RPC endpoints, along with some other information. I won't go into the details of all these fields, but if you're interested check out [the code](TODO) and read along the Windows API documentation. The stats for example are retrieved by a call to [RpcMgmtInqStats](https://docs.microsoft.com/en-us/windows/win32/api/rpcdce/nf-rpcdce-rpcmgmtinqstats), where the values returned are referenced in the [Remarks](https://docs.microsoft.com/en-us/windows/win32/api/rpcdce/nf-rpcdce-rpcmgmtinqstats#remarks) section.
+As shown this tool also list the interfaces of the found RPC endpoints, along with some other information. I won't go into the details of all these fields, but if you're interested check out [the code](https://github.com/csandker/RPCDump) and read along the Windows API documentation. The stats for example are retrieved by a call to [RpcMgmtInqStats](https://docs.microsoft.com/en-us/windows/win32/api/rpcdce/nf-rpcdce-rpcmgmtinqstats), where the values returned are referenced in the [Remarks](https://docs.microsoft.com/en-us/windows/win32/api/rpcdce/nf-rpcdce-rpcmgmtinqstats#remarks) section.
 
 Once again remember that there are only the RPC interfaces that are registered with the target's Endpoint Mapper.  
 
@@ -473,7 +475,7 @@ The process of impersonation is as easy as:
 - Once you've called [DuplicateTokenEx](https://docs.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-duplicatetokenex) to turn your Impersonation token into a primary token, you can happily return to your original server thread context by calling [RpcRevertToSelfEx](https://docs.microsoft.com/en-us/windows/win32/api/rpcdce/nf-rpcdce-rpcreverttoself)
 - And finally you can call [CreateProcessWithTokenW](https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createprocesswithtokenw) to create a new process with the client's token.
 
-Please note that this is only one way to create a process with the client's token, but in my eyes it pictures the way of doing these things pretty well and therefore i use this approach here. A sample implementation of this code can be found [here](TODO).<br>
+Please note that this is only one way to create a process with the client's token, but in my eyes it pictures the way of doing these things pretty well and therefore i use this approach here. A sample implementation of this code can be found [here](https://github.com/csandker/InterProcessCommunication-Samples/blob/master/RPC/CPP-RPC-Client-Server/RPC-Util/Command.cpp#L255).<br>
 This is by the way the same procedure i used for impersonating Named Pipe clients in my last post.
 
 As said in the recipe steps above, you just need a client that connects to your server and that client must use an authenticated binding.<br>
@@ -498,7 +500,7 @@ In [part 1 of the series](https://csandker.io/2021/01/10/Offensive-Windows-IPC-1
 \>> Step 9: Any action the server takes and any function the server calls while in the security context of the client are made with the identify of the client and thereby impersonating the client.<br>
 Source: [Offensive Windows IPC Internals 1: Named Pipes](https://csandker.io/2021/01/10/Offensive-Windows-IPC-1-NamedPipes.html#impersonating-a-named-pipe-client)
 
-The server's thread context is changed and all actions then made are made with the security context of the client. In the above section (and in my [sample code](TODO)) I used that to grab the current thread token, which then is the client's token and transform that into a primary token to launch a new process with that token. I could as well just called any action i want to do directly, because I'm all ready operating in the client's security context. Based on the section title you might already guess now where this is heading... what if the impersonation fails and the server does not check for that?
+The server's thread context is changed and all actions then made are made with the security context of the client. In the above section (and in my [sample code](https://github.com/csandker/InterProcessCommunication-Samples/blob/master/RPC/CPP-RPC-Client-Server/RPC-Util/Command.cpp#L255)) I used that to grab the current thread token, which then is the client's token and transform that into a primary token to launch a new process with that token. I could as well just called any action i want to do directly, because I'm all ready operating in the client's security context. Based on the section title you might already guess now where this is heading... what if the impersonation fails and the server does not check for that?
 
 The call to [RpcImpersonateClient](https://docs.microsoft.com/en-us/windows/win32/api/rpcdce/nf-rpcdce-rpcimpersonateclient), the API function that does all the impersonation magic for you, returns the status of the impersonation operation and it is crucial for the server to check that.<br>
 If the impersonation is successful you're inside the client's security context afterwards, but if it fails you're in the same old security context from where you called the [RpcImpersonateClient](https://docs.microsoft.com/en-us/windows/win32/api/rpcdce/nf-rpcdce-rpcimpersonateclient).<br>

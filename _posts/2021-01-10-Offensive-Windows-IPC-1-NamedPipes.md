@@ -433,3 +433,7 @@ That's about it, if you want to continue to dig into Named Pipes here are some g
 - Microsoft's Docs about pipes at [https://docs.microsoft.com/en-us/windows/win32/ipc/pipes](https://docs.microsoft.com/en-us/windows/win32/ipc/pipes)
 - Blake Watts paper about Named Pipe Security at [http://www.blakewatts.com/namedpipepaper.html](http://www.blakewatts.com/namedpipepaper.html)
 - My Sample C++ Implementation at [https://github.com/csandker/InterProcessCommunication-Samples/tree/master/NamedPipes/CPP-NamedPipe-Basic-Client-Server](https://github.com/csandker/InterProcessCommunication-Samples/tree/master/NamedPipes/CPP-NamedPipe-Basic-Client-Server)
+
+## The Series: Part 2
+
+Part 2 of the series, covering RPC can be found here: [Offensive Windows IPC Internals 2: RPC](https://csandker.io/2021/02/21/Offensive-Windows-IPC-2-RPC.html)

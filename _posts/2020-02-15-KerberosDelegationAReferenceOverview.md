@@ -6,7 +6,7 @@ abstract: "There are 3 Delegation types: Unconstrained, Constrained and Resource
 tags: Kerberos
 ---
 
-> This post is based on [Kerberos Delegation: A Wrap Up](http://localhost:4000/2020/02/10/KerberosDelegationAWrapUp.html) make sure to read this first for an introduction to the used terms. 
+> This post is based on [Kerberos Delegation: A Wrap Up](/2020/02/10/KerberosDelegationAWrapUp.html) make sure to read this first for an introduction to the used terms. 
 
 Delegation allows a **server** application to **impersonate a client** when the server connects to other network resources.<br>
 In other words: Delegation specifies the client's action to authorize a server in order to allow this server to impersonate itself (the client). 

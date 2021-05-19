@@ -429,7 +429,7 @@ There is no single authority that is aware of which RPC clients are currently ru
 Finding local executables that import client RPC API is analogous to what we already did to find servers with [DumpBin](https://docs.microsoft.com/en-us/cpp/build/reference/dumpbin-reference?view=msvc-160). A good Windows API to look for is [RpcStringBindingCompose](https://docs.microsoft.com/en-us/windows/win32/api/rpcdce/nf-rpcdce-rpcstringbindingcompose):
 
 ```powershell
-Get-ChildItem -Path "C:\Windows\System32\" -Filter "*.exe" -Recurse -ErrorAction SilentlyContinue | % { $out=$(C:\"Program Files (x86)"\"Microsoft Visual Studio 14.0"\VC\bin\dumpbin.exe /IMPORTS:rpcrt4.dll $_.VersionInfo.FileName); If($out -like "*RpcStringBindingCompose*"){ Write-Host "[+] Exe starting RPC Server: $($_.VersionInfo.FileName)"; Write-Output "[+] $($_.VersionInfo.FileName)`n`n $($out|%{"$_`n"})" | Out-File -FilePath EXEs_RpcClients.txt -Append } }
+Get-ChildItem -Path "C:\Windows\System32\" -Filter "*.exe" -Recurse -ErrorAction SilentlyContinue | % { $out=$(C:\"Program Files (x86)"\"Microsoft Visual Studio 14.0"\VC\bin\dumpbin.exe /IMPORTS:rpcrt4.dll $_.VersionInfo.FileName); If($out -like "*RpcStringBindingCompose*"){ Write-Host "[+] Exe creates RPC Binding (potential RPC Client) : $($_.VersionInfo.FileName)"; Write-Output "[+] $($_.VersionInfo.FileName)`n`n $($out|%{"$_`n"})" | Out-File -FilePath EXEs_RpcClients.txt -Append } }
 ```
 
 ![RPC Clients By Export](/public/img/2021-02-21-Offensive-Windows-IPC-2-RPC/RPC_List_Clients_By_Export.png)

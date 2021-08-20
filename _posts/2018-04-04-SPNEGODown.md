@@ -30,8 +30,8 @@ Unfortunately for a security protocol SPNEGO lacks measures to check its data in
 *What stops an attacker in a Man-in-the-middle position from changing the list of proposed authentication schemes to the attacker’s preferred choice?*<br>
 The answer to this is simple: Absolutely nothing.
 
-The result of changing the authentication scheme, e.g. from Kerberos to NTLM, can, on the other hand, have high value for an attacker. An NTLM response hash, sent over the wire, is far more likely to be breakable than a Kerberos service ticket (TGS).<br>
-The NTLM response contains a hash of the password chosen by the domain user, whereas the TGS contains an auto-generated service password.  An attacker capable of downgrading the authentication scheme to NTLM can therefore attempt to crack the user’s chosen password in an offline brute-forcing attack in order to gain access to the user’s system whereas this is considered implausible for a Kerberos ticket.
+The result of changing the authentication scheme, e.g. from Kerberos to NTLM, can, on the other hand, have high value for an attacker. An NTLM response hash, sent over the wire, is far more likely to be breakable than a Kerberos service ticket.<br>
+The NTLM response contains a hash of the password chosen by the domain user, whereas the service ticket contains an auto-generated service password.  An attacker capable of downgrading the authentication scheme to NTLM can therefore attempt to crack the user’s chosen password in an offline brute-forcing attack in order to gain access to the user’s system whereas this is considered implausible for a Kerberos ticket.
 
 > A fresh up on how NTLM and Kerberos authentication work can be found here:
 - [NTLM Authentication: A Wrap Up]({% post_url 2017-09-10-NTLMAuthenticationAWrapUp%}) 

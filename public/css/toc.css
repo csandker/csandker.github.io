@@ -1,0 +1,57 @@
+@media (min-width: 0px) {
+    .main-container .toc-container {
+        display: none;
+    }
+}
+
+@media (min-width: 1800px) {
+    body .main-container {
+        display: inline-flex;
+    }
+    .main-container .content.container {
+        height: 100%;
+    }
+    .main-container .content.container .post-content .post-toc {
+        display: none;
+    }
+    .main-container .content.container .post-content .toc-header {
+        display: none;
+    }
+    .main-container .toc-container {
+        display: inline-block;
+        height: 100%;
+        position: sticky;
+        top: 5em;
+        border-left: 1px solid rgba(158,158,158,0.17);
+        transition: all 0.2s ease-in-out;
+        animation: fade-up 0.8s;
+        margin-right: 2em;
+        height: 85vh;
+        overflow: scroll;
+    }
+}
+
+.main-container .toc-container a {
+    color: #733838;
+}
+.main-container .toc-container  a.current-headline {
+    font-weight: 600;
+    font-size: 110%;
+    color: #ae4040;
+}
+
+.main-container .toc-container  ul {
+    list-style-type: none;
+}
+
+.main-container .toc-container ul li::before {
+    content: "";  /* Add content: \2022 is the CSS Code/unicode for a bullet */
+    font-weight: bold; /* If you want it to be bold */
+    display: inline-block; /* Needed to add space between the bullet and the text */
+    width: 1em; /* Also needed for space (tweak if needed) */
+    margin-left: -1em; /* Also needed for space (tweak if needed) */
+    padding-right: 10px;
+}
+ul.related-posts li::before{
+    content: "";
+}

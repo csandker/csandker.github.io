@@ -390,6 +390,27 @@ POSTS
   color: #dfdfdf;
 }
 
+.post pre.highlight .nf {
+  color: #6ab8ca;
+}
+
+.post pre.highlight .s2 {
+  color: #d44950;
+}
+
+.post pre.highlight .nt {
+  color: #4dacf2;
+}
+
+.post pre.highlight .err {
+  color: #f03131;
+  background-color: inherit;
+}
+
+.post pre.highlight .nx {
+  color: #abd5f5;
+}
+
 .post table {
   border: 2px solid #202020e3;
 }

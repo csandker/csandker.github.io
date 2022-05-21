@@ -4,7 +4,10 @@ layout: default
 
 <div class="post">
   <h1 class="post-title">{{ page.title }}</h1>
-  <span class="post-date">{{ page.date | date_to_string }}</span>
+  <div class="post-dates">
+    <span class="post-date">{{ page.date | date_to_string }}</span>
+    <span id="last-modified" class="last-modified-date"></span>
+  </div>
   <div id="post-content" class="post-content">
     {{ content }}
   </div>
@@ -25,3 +28,28 @@ layout: default
     {% endfor %}
   </ul>
 </div>
+
+<script type="text/javascript">
+function setModifiedDate() {
+  if (document.getElementById('last-modified')) {
+    fetch("https://api.github.com/repos/{{ site.github.user }}/{{ site.github.site_repo_name }}/commits?path={{ page.path }}")
+      .then((response) => {
+        return response.json();
+      })
+      .then((commits) => {
+        var modified = commits[0]['commit']['committer']['date'].slice(0,10);
+        // some posts have been migrated to github, which have been written prior to 2020
+        if( Date.parse(modified) > Date.parse("2020-09-01") ){
+          if( modified != "{{ page.date | date: "%Y-%m-%d" }}" )  {
+            var modifiedDate = new Date(modified);
+            var modifiedDateStr = modifiedDate.getDate() + " " + modifiedDate.toLocaleString('default', { month: 'short' }) + " " + modifiedDate.getFullYear();
+            document.getElementById('last-modified').textContent = "(Last Updated: " + modifiedDateStr +")" ;
+          }
+        }
+      })
+  }
+}
+window.addEventListener('load', function () {
+  setModifiedDate();
+});
+</script>

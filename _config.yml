@@ -26,10 +26,12 @@ twitter:
 github:
   user: csandker
   url: "https://github.com/csandker"
+  site_repo_name: "csandker.github.io"
 
 feed:
   tagname: RSS Feed
   url: "/feed.xml"
+
 
 # Exclude from processing.
 # The following items will not be processed, by default. Create a custom list

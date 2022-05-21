@@ -30,7 +30,7 @@ There are 3 Types of Kerberos Delegation:
 Unconstrained Delegation allows a server to impersonate a client against any service the server wishes to. The client gives the server a wildcard allowance for impersonation.<br>
 Server and client are conceptual terms to stress the idea of delegation, read this as the server being a User account and the client being some other user account.
 
-In technical terms this means a server authorized with unconstrained delegation receives the TGTs from connecting clients and uses the clients TGTs to create new TGS for any service on behalf of the connecting client.<br>
+In technical terms this means a server authorized with unconstrained delegation receives the krbtgt service tickets (TGTs) from connecting clients and uses the clients TGT to create new service tickets (requested from the TGS) for any service on behalf of the connecting client.<br>
 **>>Take away>>:** A connecting client sends his TGT to a server authorized for unconstrained delegation
 
 ![Unconstrained101](/public/img/2020-02-14-KerberosDelegationAWrapUp/Unconstrained101.png)
@@ -64,9 +64,9 @@ The most efficient way to spread privileges rights within a domain is by the use
 
 First step is to identify if any principal has the **TRUSTED_FOR_DELEGATION** UserAccountControl attribute set (see ADSISearcher snippet above), let' say this is *UserA*.
 
-If there is a user set with TRUSTED_FOR_DELEGATION (UserA), an attacker can steal another user's TGT - let's call that user *UserB* - if:
-1. The attacker (UserA) can make the victim (UserB) connect to a service run by UserA (who has the TRUSTED_FOR_DELEGATION attribute set)
-2. The attacker (UserA) can extract UserB's TGT from the computer where UserA run his/her service and that UserB connected to.
+If there is a user set with TRUSTED_FOR_DELEGATION (*UserA*), an attacker can steal another user's TGT - let's call that user *UserB* - if:
+1. The attacker (*UserA*) can make the victim (*UserB*) connect to a service run by *UserA* (who has the TRUSTED_FOR_DELEGATION attribute set)
+2. The attacker (*UserA*) can extract *UserB*'s TGT from the computer where *UserA* run his/her service and that *UserB* connected to.
     
 For 1. [@tifkin_'s](https://twitter.com/tifkin_) amazing [SpoolSample.exe](https://github.com/leechristensen/SpoolSample) (also known for being the exploit for "The PrinterBug") can be used to trick an arbitrary ComputerAccount (including the DC-Computer account) to authenticate against a chosen target machine:<br>
 ```powershell
@@ -77,7 +77,7 @@ For 2. Easiest way to extract a TGT is by having local admin access to the targe
 - [Rubeus](https://github.com/GhostPack/Rubeus): `Rubeus.exe monitor`<br>
 - [Mimikatz](https://github.com/gentilkiwi/mimikatz): `mimikatz # sekurlsa::tickets /export`
 
-The extracted TGT of the targeted principal (UserB) can then in turn be used to connect to arbitrary other services on behalf of the victim, UserB.
+The extracted TGT of the targeted principal (*UserB*) can then in turn be used to connect to arbitrary other services on behalf of the victim, *UserB*.
 
 **An attack chain** could look as follows:<br>
 Assume you found found a computer account (ComputerA$) is set with the TRUSTED_FOR_DELEGATION attribute:<br>
@@ -110,29 +110,31 @@ You can now use your new user access for example by using [PsExec](https://docs.
 Constrained Delegation allows a server to impersonate a client against defined, specified service(s).
 Server and client are conceptual terms to stress the idea of delegation, read this as the server being a User account and the client being some other user account.
 
-Let's say a user (*UserA*) connects to a service (let's call it *ServiceA*) using his TGS for *ServiceA*.<br>
+Let's say a user (*UserA*) connects to a service (let's call it *ServiceA*) using his service ticket for *ServiceA*.<br>
 Now *ServiceA* needs to connect to another service (let's call that *ServiceB*) to do it's task, but it needs the permissions of *UserA* to do that.<br>
 In short: *ServiceA* wants to impersonate *UserA* and delegates his/her access permissions to *ServiceB*.
 
 This is where Constrained Delegation comes into play. Instead of allowing *ServiceA* to completely impersonating the user (against all services in the domain), *ServiceA* should only be allowed to impersonate *UserA* against *ServiceB*.
 
 The way this is done is as follows:
-- *UserA* connects to *ServiceA* using his/her TGS for *ServiceA*<br>
-- *ServiceA* uses a special service, called **S4U2Proxy**, to request a TGS for *ServiceB* on behalf of *UserA*<br>
-- The Kerberos Distribution Center (**KDC**) (which in most cases is part of the DomainController) return a TGS for *ServiceB* (this TGS is issued for *UserA*, hence allowing *ServiceA* to impersonate *UserA* towards *ServiceB*)<br>
-- *ServiceA* then connects to *ServiceB* with the returned TGS for *ServiceB*<br>
+- *UserA* connects to *ServiceA* using his/her service ticket for *ServiceA*<br>
+- *ServiceA* uses a special service, called **S4U2Proxy**, to request a service ticket for *ServiceB* on behalf of *UserA*<br>
+- The Kerberos Distribution Center (**KDC**) (which in most cases is part of the DomainController) return a service ticket for *ServiceB* (this service tiicket is issued for *UserA*, hence allowing *ServiceA* to impersonate *UserA* towards *ServiceB*)<br>
+- *ServiceA* then connects to *ServiceB* with the returned service ticket for *ServiceB*<br>
 
 ![S4U2Proxy](/public/img/2020-02-14-KerberosDelegationAWrapUp/S4U2Proxy.png)
 
-In this case *ServiceA* makes use of the **S4U2Proxy** service in order to request a TGS for *ServiceB* on behalf of *UserA*.<br>
-The S4U2Proxy services requires that the caller (*ServiceA*) presents a valid TGS for the user that should be impersonated (*UserA*).<br>
-This is meant to ensure that the user exists and has really connected to *ServiceA* (otherwise ServiceA would not have the user's TGS).
-There might occur cases where ServiceA can't present a TGS for the User (because *UserA* didn't connect via Kerberos), for those cases the **Protocol Transition** with the **S4U2Self** service has been created (we'll get to this in a moment further down below).
+*(Note in red the use of **S4U2Proxy** instead of using the user's TGT, which would require **Unconstrained Delegation**)*
 
-Note that the TGS provided in the S4U2Proxy request must have the **FORWARDABLE** flag set.<br> 
-The FORWARDABLE flag is never set for accounts that are configured as "sensitive for delegation" (the **USER_NOT_DELEGATED** attribute is set to true) or for members of the "Protected Users" group
+In this case *ServiceA* makes use of the **S4U2Proxy** service in order to request a service for *ServiceB* on behalf of *UserA*.<br>
+The S4U2Proxy services requires that the caller (*ServiceA*) presents a valid service ticket for the user that should be impersonated (*UserA*).<br>
+This is meant to ensure that the user exists and has really connected to *ServiceA* (otherwise ServiceA would not have the user's service ticket).
+There might occur cases where ServiceA can't present a service ticket for the User (because *UserA* hadn't connected via Kerberos), for those cases the **Protocol Transition** with the **S4U2Self** service has been created (we'll get to this in a moment further down below).
 
-In order for this to work *ServiceA* must be authorized for Constrained Delegation (more on this below) and must be specified with a defined set of user accounts that can impersonate (meaning where it can delegate a user authentication to)
+Note that the service ticket provided in the S4U2Proxy request must have the **FORWARDABLE** flag set.<br> 
+The FORWARDABLE flag is never set for accounts that are configured as "sensitive for delegation" (the **USER_NOT_DELEGATED** attribute is set to true) or for members of the "Protected Users" group.
+
+In order for this to work *ServiceA* must be authorized for Constrained Delegation (more on this below) and must be specified with a defined set of user accounts that can impersonate (meaning where it can delegate a user authentication to).
 
 **An Example** account configuration could look like this:<br>
 In the below image ServiceA would be the user *SQLSvc* and ServiceB would be *EXCHANGE01*.<br>
@@ -157,18 +159,18 @@ All principals that hold the SeEnableDelegationPrivilege privilege.<br>
 
 
 ## Constrained Delegation (S4U2Self)
-In the "usual" Constrained Delegation process the S4U2Proxy service is required to obtain a TGS for the user that a service wishes to impersonate. This is meant to ensure that this user exists and has really authenticated to the service that now tries to impersonate him/her.
+In the "usual" Constrained Delegation process the S4U2Proxy service is required to obtain a service ticket for the user that a service wishes to impersonate. This is meant to ensure that this user exists and has really authenticated to the service that now tries to impersonate him/her.
 
 Let's say *UserA* connected to *ServiceA* and *ServiceA* is allowed to delegate (ms-DS-Allowed-To-Delegate-To) to *ServiceB*.<br>
-As *ServiceA* is required to present *UserA*'s TGS to the S4U2Proxy service, *UserA* is required to connect to *ServiceA* through Kerberos (otherwise there would be no TGS).<br>
+As *ServiceA* is required to present *UserA*'s service ticket to the S4U2Proxy service, *UserA* is required to connect to *ServiceA* through Kerberos (otherwise there would be no service ticket).<br>
 What if the user can't connect to *ServiceA* via Kerberos, but wants to use other authentication mechanisms (NTLM, BasicAuth, ...)<br>
-This is where **Protocol Transition** and the **S4U2Self** services come into play 
-    
-In the cases where *UserA* does not authenticate to *ServiceA* via Kerberos, *ServiceA* can use the S4U2Self service to create a TGS for *UserA*, which it then in turn can use to run S4U2Proxy as usual.<br>
-**→ This means ServiceA can request a TGS for/to itself for any arbitrary user.**
+This is where **Protocol Transition** and the **S4U2Self** services come into play.
+
+In the cases where *UserA* does not authenticate to *ServiceA* via Kerberos, *ServiceA* can use the S4U2Self service to create a servuce ticket for *UserA*, which it then in turn can use to run S4U2Proxy as usual.<br>
+**→ This means ServiceA can request a service ticket for/to itself for any arbitrary user.**
 
 As this is sensitive operation Microsoft created an additional UserAccountControl Attribute **‘TRUSTED_TO_AUTH_FOR_DELEGATION’**.<br>
-Only principals that hold this UserAccountControl attribute can request TGS to/for itself for any user from the KDC.
+Only principals that hold this UserAccountControl attribute can request service ticket to/for itself for any user from the KDC.
 
 Assume *UserA* connected to *ServiceA* via NTLM, the authentication flow then looks like the following (making use of S4U2Self)
 
@@ -178,7 +180,7 @@ An Example account configuration for Unconstrained Delegation with Protocol Tran
 
 ![Screenshot_from_2020-01-22_16-05-26](/public/img/2020-02-14-KerberosDelegationAWrapUp/Screenshot_from_2020-01-22_16-05-26.png)
 
-**Who is Authorized To Request TGS For Arbitrary Users ?**<br>
+**Who is Authorized To Request Service Tickets For Arbitrary Users To Themselfs ?**<br>
 All principals that have the **TRUSTED_TO_AUTH_FOR_DELEGATION** UserAccountControl attribute.<br>
 → Per Default no user has this attribute
 
@@ -210,7 +212,7 @@ In technical terms that means:<br>
 A user account holding the **SeEnableDelegationPrivilege** can set **ms-DS-Allowed-To-Delegate-To** account attribute of *UserA* to be 'ServiceB\HostB'.
 
 Let's refer to this "conventional" Constrained based delegation as "Outbound Delegation" for a second.<br>
-This makes sense as the granted authorization by the admin points away from the resource (from *UserA* to *ServiceB\HostB*) 
+This makes sense as the granted authorization by the admin points away from the resource (from *UserA* to *ServiceB\HostB*).
 
 By introducing Resource Based Constrained Delegation Microsoft wanted the delegation concept to be more flexible and allow a resource owner (that is a User) to decide who is allowed to delegate to him/her.<br>
 To facilitate that Microsoft created the new account attribute **msDS-AllowedToActOnBehalfOfOtherIdentity**.
@@ -219,8 +221,8 @@ To facilitate that Microsoft created the new account attribute **msDS-AllowedToA
 <u>any user with write permissions</u> to *UserB*'s 'msDS-AllowedToActOnBehalfOfOtherIdentity’ account attribute can set this attribute to a bitmask representing *UserA*.<br>
 → As *UserB* has write permissions to his/her own account attributes, *UserB* can allow *UserA* to delegate to his/her services without the need of an administrator.
 
-If *UserB*'s 'msDS-AllowedToActOnBehalfOfOtherIdentity’ account attribute is set to *UserA*, *UserA* can request a TGS for any service run by *UserB*.<br>
-→ **Note in “conventional” constraint delegation UserA would only be allowed to request a TGS for ServiceB run by UserB**
+If *UserB*'s 'msDS-AllowedToActOnBehalfOfOtherIdentity’ account attribute is set to *UserA*, *UserA* can request a service ticket for any service run by *UserB*.<br>
+→ **Note in “conventional” constraint delegation UserA would only be allowed to request a service ticket for ServiceB run by UserB**
 
 ![DelegationTypes](/public/img/2020-02-14-KerberosDelegationAWrapUp/DelegationTypes.png)
 

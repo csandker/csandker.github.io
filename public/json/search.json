@@ -7,6 +7,7 @@
       "title"    : "{{ post.title | escape }}",
       "tags"     : "{{ post.tags | join: ', ' }}",
       "date"     : "{{ post.date }}",
+      "url"      : "{{ post.url }}",
       "content" : "{{post.content | strip_html | strip_newlines | escape | uri_escape }}"
 
     } {% unless forloop.last %},{% endunless %}

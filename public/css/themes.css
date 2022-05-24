@@ -66,6 +66,9 @@ strong {
 .post table tbody tr:nth-child(2n+1) td, tbody tr:nth-child(2n+1) th {
     background-color: #222;
 }
+.post figure.highlight table tbody, .post figure.highlight table tbody td {
+    background-color: unset;
+}
 
 .post code {
     color: #bf616a;
@@ -140,6 +143,9 @@ body.theme-light .post table tbody {
 }
 body.theme-light .post table tbody tr:nth-child(2n+1) td, tbody tr:nth-child(2n+1) th {
     background-color: #f9f9f9;
+}
+body.theme-light .post figure.highlight table tbody, body.theme-light .post figure.highlight table tbody td {
+    background-color: unset;
 }
 
 body.theme-light .post code {

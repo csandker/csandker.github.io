@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Offensive Windows IPC Internals 3: ALPC"
-date:   2022-05-21 10:00:00 +0200
+date:   2022-05-24 10:00:00 +0200
 abstract: "After talking about two inter-process communication (IPC) protocols that can be uses remotely as well as locally, namely Named Pipes and RPC, with ALPC we're now looking at a technology that can only be used locally..."
 tags: IPC WinInternals
 ---
@@ -13,25 +13,25 @@ tags: IPC WinInternals
 
 ## Introduction
 
-After talking about two inter-process communication (**IPC**) protocols that can be uses remotely as well as locally, namely [Named Pipes](https://csandker.io/2021/01/10/Offensive-Windows-IPC-1-NamedPipes.html) and [RPC](https://csandker.io/2021/02/21/Offensive-Windows-IPC-2-RPC.html), with ALPC we're now looking at a technology that can only be used locally. While RPC stands for **R**emote **P**rocedure **C**all, ALPC reads out to **A**dvanced **L**ocal **P**rocedure **C**all, sometimes also referenced as **A**synchronous **L**ocal **P**rocedure **C**all. Especially the later reference (Asynchronous) is a reference to the days of Windows Vista when ALPC was introduced to replace LPC (Local Procedure Call), which is the predecessor IPC mechanism used until the rise of Windows Vista.<br>
+After talking about two inter-process communication (**IPC**) protocols that can be uses remotely as well as locally, namely [Named Pipes](/2021/01/10/Offensive-Windows-IPC-1-NamedPipes.html) and [RPC](/2021/02/21/Offensive-Windows-IPC-2-RPC.html), with ALPC we're now looking at a technology that can only be used locally. While RPC stands for **R**emote **P**rocedure **C**all, ALPC reads out to **A**dvanced **L**ocal **P**rocedure **C**all, sometimes also referenced as **A**synchronous **L**ocal **P**rocedure **C**all. Especially the later reference (asynchronous) is a reference to the days of Windows Vista when ALPC was introduced to replace LPC (Local Procedure Call), which is the predecessor IPC mechanism used until the rise of Windows Vista.<br>
 
 **A quick word on LPC**<br>
 The local procedure call mechanism was introduced with the original Windows NT kernel in 1993-94 as a **synchronous** inter-process communication facility. Its synchronous nature meant that clients/servers had to wait for a message to dispatched and acted upon before execution could continue. This was one of the main flaws that ALPC was designed to replace and the reason why ALPC is referred to by some as **asynchronous** LPC.<br>
-ALPC was brought to light with Windows Vista and at least from Windows 7 onward LPC was completely removed from the NT kernel. To not break legacy applications and allow for backward compatibility, for which Microsoft is (in)famously known for, the function used to create an LPC port was kept, but the function call was redirected to not create an LPC, but an ALPC port. 
+ALPC was brought to light with Windows Vista and at least from Windows 7 onward LPC was completely removed from the NT kernel. To not break legacy applications and allow for backwards compatibility, which Microsoft is (in)famously known for, the function used to create an LPC port was kept, but the function call was redirected to not create an LPC, but an ALPC port. 
 
-![LPC CreatePort in Windows 7](/public/img/2021-01-17-Offensive-Windows-IPC-2-ALPC/LPC_CreatePort_Win7.png "CreatePort API Call in Windows 7")
+![LPC CreatePort in Windows 7](/public/img/2022-05-24-Offensive-Windows-IPC-3-ALPC/LPC_CreatePort_Win7.png "CreatePort API Call in Windows 7")
 
 As LPC is effectively gone since Windows 7, this post will only focus on ALPC, so let's get back to it.<br>
-*But, if you're -like me- enjoy reading old(er) documentations of how things started out and how things used to for work, here's an article going in some detail about how LPC used to work in Windows NT 3.5: [http://web.archive.org/web/20090220111555/http://www.windowsitlibrary.com/Content/356/08/1.html](http://web.archive.org/web/20090220111555/http://www.windowsitlibrary.com/Content/356/08/1.html)*
+*But, if you're - like me - enjoy reading old(er) documentations of how things started out and how things used to for work, here's an article going in some detail about how LPC used to work in Windows NT 3.5: [http://web.archive.org/web/20090220111555/http://www.windowsitlibrary.com/Content/356/08/1.html](http://web.archive.org/web/20090220111555/http://www.windowsitlibrary.com/Content/356/08/1.html)*
 
 **Back to ALPC**<br>
-ALPC is a fast, very powerful and within the Windows OS (internally) very extensively used inter-process communication facility, but it's not intended to be used by developers, because to Microsoft ALPC is an internal IPC facility, which means that ALPC is **undocumented** and only used as the underlying transportation technology for other, documented and intended-for-developer-usage message transportation protocols, for example in RPC calls.<br>
+ALPC is a fast, very powerful and within the Windows OS (internally) very extensively used inter-process communication facility, but it's not intended to be used by developers, because to Microsoft ALPC is an internal IPC facility, which means that ALPC is **undocumented** and only used as the underlying transportation technology for other, documented and intended-for-developer-usage message transportation protocols, for example RPC.<br>
 The fact that ALPC is undocumented (by Microsoft), does however not mean that ALPC is a total blackbox as smart folks like [Alex Ionescu](https://twitter.com/aionescu) have reverse engineered how it works and what components it has. But what it *does mean* is that you shouldn't rely on any ALPC behavior for any long-term production usage and even more you really shouldn't use ALPC directly to build software as there are a lot of non-obvious pitfalls that could cause security or stability problems.<br>
 If you feel like you could hear another voice on ALPC after reading this post, I highly recommend listening to [Alex's]((https://twitter.com/aionescu)) [ALPC talk from SyScan'14](https://www.youtube.com/watch?v=UNpL5csYC1E) and especially keep an ear open when Alex talks about what steps are necessary to release a mapped view (and that's only addressing views) from your ALPC server, which gets you at around [minute 33 of the talk](https://www.youtube.com/watch?v=UNpL5csYC1E#t=33m18s).
 
 So what I'm saying here is:
 
-> **ALPC is a very interesting target, but not intended for usage in production development. Also you shouldn't rely on all the information in this post being or continue to be 100% accurate as ALPC is undocumented.**
+> **ALPC is a very interesting target, but not intended for (non-Microsoft) usage in production development. Also you shouldn't rely on all the information in this post being or continue to be 100% accurate as ALPC is undocumented.**
 
 ## ALPC Internals
 
@@ -42,11 +42,11 @@ Alright let's get into some ALPC internals to understand how ALPC works, what mo
 To get off from the ground it should be noted that the primary components of ALPC communications are ALPC port objects. An ALPC port object is a kernel object and its use is similar to the use of a network socket, where a server opens a socket that a client can connect to in order to exchange messages.<br>
 If you fire up [WinObj](https://docs.microsoft.com/en-us/sysinternals/downloads/winobj) from the [Sysinternals Suite](https://docs.microsoft.com/en-us/sysinternals/), you'll find that there are many ALPC ports running on every Windows OS, a few can be found under the root path as shown below: 
 
-![ALPC Ports under the root path in WinObj](/public/img/2021-01-17-Offensive-Windows-IPC-2-ALPC/WinObj_ALPC-Ports_Root.png "ALPC Ports under root path")
+![ALPC Ports under the root path in WinObj](/public/img/2022-05-24-Offensive-Windows-IPC-3-ALPC/WinObj_ALPC-Ports_Root.png "ALPC Ports under root path")
 
 ... but the majority of ALPCs port are housed under the 'RPC Control' path (remember that RPC uses ALPC under the hood):
 
-![WinObj_ALPC-Ports_RPC-Control.png](/public/img/2021-01-17-Offensive-Windows-IPC-2-ALPC/WinObj_ALPC-Ports_RPC-Control.png "ALPC under \\RPC Control")
+![WinObj_ALPC-Ports_RPC-Control.png](/public/img/2022-05-24-Offensive-Windows-IPC-3-ALPC/WinObj_ALPC-Ports_RPC-Control.png "ALPC under \\RPC Control")
 
 To get started with an ALPC communication, a server opens up an ALPC port that clients can connect to, which is referred to as the **ALPC Connection Port**, however, that's not the only ALPC port that is created during an ALPC communication flow (as you'll see in the next chapter). Another two ALPC ports are created for the client and for the server to pass messages to.<br>
 So, the first thing to make a mental note of is:
@@ -55,48 +55,49 @@ So, the first thing to make a mental note of is:
 
 Although there are 3 ALPC ports used in total in an ALPC communication and they all are referred to by different names (such as "ALPC Connection Ports"), there is only a single ALPC port kernel object, which all three ports, used in an ALPC communication, instantiate. The skeleton of this ALPC kernel object looks like this: 
 
-![ALPC Kernel Object](/public/img/2021-01-17-Offensive-Windows-IPC-2-ALPC/ALPC_Port_KernelStructure.png "_ALPC_PORT kernel structure")
+![ALPC Kernel Object](/public/img/2022-05-24-Offensive-Windows-IPC-3-ALPC/ALPC_Port_KernelStructure.png "_ALPC_PORT kernel structure")
 
 As it can be seen above the ALPC kernel object is a quite complex kernel object, referencing various other object types. This makes it an interesting research target, but also leaves some good margin for errors and/or missed attack paths.
 
 ### ALPC Message Flow
 
 To dig deeper into ALPC we'll have a look into the ALPC message flow to understand how messages are sent and how these could look like.
-First of all we've already learned that 3 ALPC port objects are involved in an ALPC communication scenario, with the first one being the **ALPC Connection Port** that is created by a server process and that clients can connect to (similar to a network socket). Once a client connects to a server's ALPC Connection Port, two new ports are created by the kernel called **ALPC Server Communication Port** and **ALPC Client Communication Port**.
+First of all we've already learned that 3 ALPC port objects are involved in an ALPC communication scenario, with the first one being the **ALPC connection port** that is created by a server process and that clients can connect to (similar to a network socket). Once a client connects to a server's ALPC connection port, two new ports are created by the kernel called **ALPC server communication port** and **ALPC client communication port**.
 
-![ALPC Port Object Relationship](/public/img/2021-01-17-Offensive-Windows-IPC-2-ALPC/ALPC_PortObjects_Diagam1.png "ALPC Port Object Relationship")
+![ALPC Port Object Relationship](/public/img/2022-05-24-Offensive-Windows-IPC-3-ALPC/ALPC_PortObjects_Diagam1.png "ALPC Port Object Relationship")
 
 Once the server and client communication ports are established both parties can send messages to each other using the single function `NtAlpcSendWaitReceivePort` exposed by *ntdll.dll*.<br>
 The name of this function sounds like three things at once - Send, Wait and Receive - and that's exactly what it is. Server and client use this single function to wait for messages, send messages and receive messages on their ALPC port. This sounds unnecessary complex and I can't tell you for sure why it was build this way, but here's my guess on it: Remember that ALPC was created as a fast and internal-only communication facility and the communication channel was build around a single kernel object (the ALPC port). Using this 3-way function allows to do multiple operations, e.g. sending and receiving a message, in a single call and thus saves time and reduces user-kernel-land switches. Additionally, this function acts as a single gate into the message exchange process and therefore allows for easier code change and optimizations (ALPC communication is used in a lot of different OS components ranging from kernel drivers to user GUI applications developed by different internal teams). Lastly ALPC is intended as an internal-only IPC mechanism so Microsoft does not need to design it primarily user or 3rd party developer friendly.<br>
-Within this single function you also specify what kind of message you want to send (there are different kinds with different implications, but we'll get to that later on) and what other attributes you want to send along with your message (again we'll get to the things that you can send along with a message in the chapter [ALPC Message Attributes](#alpc-message-attributes)).
+Within this single function you also specify what kind of message you want to send (there are different kinds with different implications, *we'll get to that later on*) and what other attributes you want to send along with your message (again we'll get to the things that you can send along with a message later on in chapter [ALPC Message Attributes](#alpc-message-attributes)).
 
 So far this sounds pretty straight forward: A server opens a port, a client connects to it, both receive a handle to a communication port and send along messages through the single function `NtAlpcSendWaitReceivePort`... easy.<br>
 We'll on a high level it is that easy, but you surely came here for the details and the title of the post said "internals" so let's buckle up for a closer look:
 
-1. **A server** process calls [NtAlpcCreatePort](TODO) with a chosen ALPC port name, e.g. '*CSALPCPort*', and optionally with a [SecurityDescriptor](https://docs.microsoft.com/en-us/windows/win32/secauthz/security-descriptors) to specify who can connect to it.<br>
+1. **A server** process calls [NtAlpcCreatePort](https://github.com/csandker/InterProcessCommunication-Samples/blob/master/ALPC/CPP-ALPC-Basic-Client-Server/CPP-Util/ALPC.h#L300-L305) with a chosen ALPC port name, e.g. '*CSALPCPort*', and optionally with a [SecurityDescriptor](https://docs.microsoft.com/en-us/windows/win32/secauthz/security-descriptors) to specify who can connect to it.<br>
 The kernel creates an ALPC port object and returns a handle this object to the server, this port is referred to as the **ALPC Connection Port**
-2. **The server** calls [NtAlpcSendWaitReceivePort](TODO), passing in the handle to its previously created connection port, to wait for client connections
-3. **A client** can then call [NtAlpcConnectPort](TODO) with:
+2. **The server** calls [NtAlpcSendWaitReceivePort](https://github.com/csandker/InterProcessCommunication-Samples/blob/master/ALPC/CPP-ALPC-Basic-Client-Server/CPP-Util/ALPC.h#L322-L332), passing in the handle to its previously created connection port, to wait for client connections
+3. **A client** can then call [NtAlpcConnectPort](https://github.com/csandker/InterProcessCommunication-Samples/blob/master/ALPC/CPP-ALPC-Basic-Client-Server/CPP-Util/ALPC.h#L307-L320) with:
 - The name of the server's ALPC port (*CSALPCPort*)
 - *(OPTIONALLY)* a message for the server (e.g. to send a magic keyword or whatever)
 - *(OPTIONALLY)* the SID of server to ensure the client connects to the intended server
-- *(OPTIONALLY)* message attributes to send along with the client's connection request (message attributes wil be detailed in chapter [ALPC Message Attributes](#alpc-message-attributes))
-4. This connection request is then passed to **the server**, which calls [NtAlpcAcceptConnectPort](TODO) to accept or reject the client's connection request.<br> *(Yes, although the function is named NtAlpcAccept... this function can also be used to reject client connections. This functions last parameter is a boolean value that specifies if connection are accepted (if set to `true`) or rejected (if set to `false`).*<br>
+- *(OPTIONALLY)* message attributes to send along with the client's connection request<br>
+*(Message attributes will be detailed in chapter [ALPC Message Attributes](#alpc-message-attributes))*
+4. This connection request is then passed to **the server**, which calls [NtAlpcAcceptConnectPort](https://github.com/csandker/InterProcessCommunication-Samples/blob/master/ALPC/CPP-ALPC-Basic-Client-Server/CPP-Util/ALPC.h#L334-L345) to accept or reject the client's connection request.<br> *(Yes, although the function is named NtAlpcAccept... this function can also be used to reject client connections. This functions last parameter is a boolean value that specifies if connection are accepted (if set to `true`) or rejected (if set to `false`).*<br>
 The server can also:
 - *(OPTIONALLY)* return a message to the client with the acceptance or denial of the connection request and/or...
 - *(OPTIONALLY)* add message attributes to that message and/or ..
 - *(OPTIONALLY)* allocate a custom structure, for example a unique ID, that is attached to the server's communication port in order to identify the client  
 *--- If the server accepts the connection request, the server and the client each receive a handle to a communication port ---*
-5. **Client** and **server** can now send and receive messages to/from each other via [NtAlpcSendWaitReceivePort](TODO), where:
+5. **Client** and **server** can now send and receive messages to/from each other via [NtAlpcSendWaitReceivePort](https://github.com/csandker/InterProcessCommunication-Samples/blob/master/ALPC/CPP-ALPC-Basic-Client-Server/CPP-Util/ALPC.h#L322-L332), where:
 - The **client** listens for and sends new messages to its *communication* port
 - The **server** listens for and sends new messages to its *connection* port
 - Both the **client** and the **server** can specify which *message attributes* (we'll get to tht in a bit) they want to receive when listening for new messages
 
 *... wait a minute... Why is the server sending/receiving data on the <u>connection port</u> instead of its <u>communication port</u>, since it has a dedicated communication port?... This was one of the many things that puzzled me on ALPC and instead of doing all the heavy lifting reversing work to figure that out myself, I cheated and reached out to [Alex Ionescu](https://twitter.com/aionescu) and simply asked the expert. I put the answer in [Appendix A](#appendix-a-the-use-of-connection-and-communication-ports) at the end of this post, as I don't  want to drive too far away from the message flow at this point... sorry for the cliff hanger ...*
 
-Anyhow, looking back at the message flow from above, we can figure client and server are using various functions calls to create ALPC ports and then sending and receiving messages through the single function `NtAlpcSendWaitReceivePort`. While this contains a fair amount of information about the message flow it's important to always be aware that server and client do not have a direct peer-to-peer connection, but instead route all messages through the kernel, which is responsible for placing messages on message queues, notifying each party of received messages and other things like validating messages and message attributes. To put that in perspective I've added *some* kernel calls into this picture:
+Anyhow, looking back at the message flow from above, we can figure that client and server are using various functions calls to create ALPC ports and then sending and receiving messages through the single function `NtAlpcSendWaitReceivePort`. While this contains a fair amount of information about the message flow it's important to always be aware that server and client do not have a direct peer-to-peer connection, but instead route all messages through the kernel, which is responsible for placing messages on message queues, notifying each party of received messages and other things like validating messages and message attributes. To put that in perspective I've added *some* kernel calls into this picture:
 
-![ALPC Message Flow](/public/img/2021-01-17-Offensive-Windows-IPC-2-ALPC/ALPC_Message_Flow.svg "ALPC Message Flow")
+![ALPC Message Flow](/public/img/2022-05-24-Offensive-Windows-IPC-3-ALPC/ALPC_Message_Flow.svg "ALPC Message Flow")
 
 I have to admit on a first glance this is diagram is not super intuitive, but I'll promise things will get clearer on the way, bear with me.<br>
 To get a more complete picture of what ALPC looks like under the hood, we need to dive a little deeper into the implementation bits of ALPC messages, which I'll cover in the following section.
@@ -105,7 +106,7 @@ To get a more complete picture of what ALPC looks like under the hood, we need t
 
 Okay so first of all, let's clarify the structure of an ALPC message. An ALPC message always consist of a, so called, *PORT_HEADER* or *PORT_MESSAGE*, followed by the actual message that you want to send, e.g. some text, binary content, or anything else.
 
-![ALPC_Kernel_PortMessage_Structure.png](/public/img/2021-01-17-Offensive-Windows-IPC-2-ALPC/ALPC_Kernel_PortMessage_Structure.png "_PORT_MESSAGE Kernel Structure")
+![ALPC_Kernel_PortMessage_Structure.png](/public/img/2022-05-24-Offensive-Windows-IPC-3-ALPC/ALPC_Kernel_PortMessage_Structure.png "_PORT_MESSAGE Kernel Structure")
 
 In plain old C++ we can define an ALPC message with the following two structs:
 
@@ -213,25 +214,25 @@ RtlSecureZeroMemory(&pmReceived, sizeof(pmReceived));
 
 This message buffer has then been passed to the kernel in the call to `NtAlpcSendWaitReceivePort`, which copies the sending buffer into the receiving buffer on the other side.<br>
 We could also dig into the kernel to figure out how an ALPC message (send via message buffers) actually looks like. Reversing the `NtAlpcSendWaitReceivePort` leads us to the kernel function `AlpcpReceiveMessage`, which eventually calls - for our code path - into `AlpcpReadMessageData`, where the copying of the buffer happens.<br>
-*Side note: If you're interested in all the reversing details I left out here check out my follow up post: [TODO](TODO)*
+*Side note: If you're interested in all the reversing details I left out here check out my follow up post (which I will release next week): [...COMING NEXT WEEK...](#)*
 
 At the end of this road you'll find a simple [RtlCopyMemory](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlcopymemory) call - which is just a macro for [memcpy](https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/memcpy-wmemcpy?view=msvc-170) - that copies a bunch of bytes from one memory space into another - it's not as fancy as one might have expected it, but that's what it is ¯\\_(ツ)_/¯.
 
-![Decompiled Function: AlpcpReadMessageData (Ghidra)](/public/img/2021-01-17-Offensive-Windows-IPC-2-ALPC/AlpcpReadMessageData.png "AlpcpReadMessageData decompiled in Ghidra")
+![Decompiled Function: AlpcpReadMessageData (Ghidra)](/public/img/2022-05-24-Offensive-Windows-IPC-3-ALPC/AlpcpReadMessageData.png "AlpcpReadMessageData decompiled in Ghidra")
 
 To see that in action I've put a breakpoint into the `AlpcpReadMessageData` function shown above for my ALPC server process. The breakpoint is triggered once my ALPC client connects and sends an initial message to the server. The message that the client sends is the: `Hello Server`. The annotated debug output is shown below:
 
-![ALPC_Message_View.svg](/public/img/2021-01-17-Offensive-Windows-IPC-2-ALPC/ALPC_Message_View.svg "Visualized double buffer messaging mechanism")
+![ALPC_Message_View.svg](/public/img/2022-05-24-Offensive-Windows-IPC-3-ALPC/ALPC_Message_View.svg "Visualized double buffer messaging mechanism")
 
 These debug screens show what an ALPC message send through a message buffer looks like...just bytes in a process memory.<br>
-Moreover the above screens also show the 'double buffer mechanism'. The copy action from client to kernel space has not been tracked as the breakpoint was only set for the server action and here we see that seconds part of the mechanism where the buffer is copied from the kernel's (source) to the server's (destination) memory space.  
+Also note that the above screens is a visual representation of the 'double buffer mechanism' in it's 2nd buffer copy stage, where a message is copied from kernel memory space into the receiver's process memory space. The copy action from sender to kernel space has not been tracked as the breakpoint was only set for the receiver process.  
 
 ### ALPC Message Attributes
 
 Alright, there's one last piece that needs to be detailed before putting it all together, which is ALPC message attributes. I've mentioned message attributes a few times before, so here is what that means.<br>
 When sending and receiving messages, via `NtAlpcSendWaitReceivePort`, client and server can both specify a set of attributes that they would like to send and/or receive. These set of attributes that one wants to send and the set of attributes that one wants to receive are passed to `NtAlpcSendWaitReceivePort` in two extra parameters, shown below:
 
-![Function: NtAlpcSendWaitReceivePort](/public/img/2021-01-17-Offensive-Windows-IPC-2-ALPC/Code_NtAlpcSendWaitReceivePort.png "NtAlpcSendWaitReceivePort function signature")
+![Function: NtAlpcSendWaitReceivePort](/public/img/2022-05-24-Offensive-Windows-IPC-3-ALPC/Code_NtAlpcSendWaitReceivePort.png "NtAlpcSendWaitReceivePort function signature")
 
 The idea here is that as sender you can pass on additional information to a receiver and the receiver on the other end can specify what set of attributes he would like to get, meaning that not necessarily all extra information that was send is also exposed to the receiver.<br>
 The following message attributes can be send and/or received:
@@ -252,7 +253,7 @@ typedef struct _ALPC_DATA_VIEW_ATTR {
 	SIZE_T ViewSize;
 } ALPC_DATA_VIEW_ATTR, * PALPC_DATA_VIEW_ATTR;
 {% endhighlight %}
-- **Context Attribute**: The context attribute stores pointers to user-specified context structures that have been assigned to a specific client (communication port) or to a specific message. The context structure can be any arbitrary structure, for example a unique number, and is meant to identify a client. The server can extract and reference the port structure to uniquely identify a client that send a message. An example of a port structure I used can be found [here](TODO-LINK_GITLAB). The kernel will set in the sequence number, message ID and callback ID to enable structured message handling (similar to TCP). This message attribute can always be extracted by the receiver of a message, the sender does not have to specify this and cannot prevent the receiver from accessing this. The structure of this attribute is shown below:
+- **Context Attribute**: The context attribute stores pointers to user-specified context structures that have been assigned to a specific client (communication port) or to a specific message. The context structure can be any arbitrary structure, for example a unique number, and is meant to identify a client. The server can extract and reference the port structure to uniquely identify a client that send a message. An example of a port structure I used, can be found [here](https://github.com/csandker/InterProcessCommunication-Samples/blob/master/ALPC/CPP-ALPC-Basic-Client-Server/CPP-Util/ALPC.h#L424-L428). The kernel will set in the sequence number, message ID and callback ID to enable structured message handling (similar to TCP). This message attribute can always be extracted by the receiver of a message, the sender does not have to specify this and cannot prevent the receiver from accessing this. The structure of this attribute is shown below:
 {% highlight c++ linenos %}
 typedef struct _ALPC_CONTEXT_ATTR {
 	PVOID PortContext;
@@ -296,7 +297,9 @@ typedef struct _ALPC_WORK_ON_BEHALF_ATTR
 } ALPC_WORK_ON_BEHALF_ATTR, * PALPC_WORK_ON_BEHALF_ATTR;
 {% endhighlight %}
 
-The message attributes, how these are initialized and send was another thing that puzzled me when coding a sample ALPC server and client. So you don't crash with the same problems that I had here's the secret I learned about ALPC message attributes.<br>
+<br>
+The message attributes, how these are initialized and send was another thing that puzzled me when coding a sample ALPC server and client. So you don't crash with the same problems that I had here are secret I learned about ALPC message attributes:
+
 To get started one has to know that the structure for ALPC message attributes is the following:
 {% highlight c++ linenos %}
 typedef struct _ALPC_MESSAGE_ATTRIBUTES
@@ -306,14 +309,14 @@ typedef struct _ALPC_MESSAGE_ATTRIBUTES
 } ALPC_MESSAGE_ATTRIBUTES, * PALPC_MESSAGE_ATTRIBUTES;
 {% endhighlight %}
 
-Looking at this I initially thought you call the function [AlpcInitializeMessageAttribute](TODO) give it a reference to the above structure and the flag for the message attribute you want to send (all attributes are referenced by a flag value, [here's the list from my code](TODO)) and the kernel then sets it all up for you. You then put the referenced structure into [NtAlpcSendWaitReceivePort](TODO), repeat the process for every message you want to send and be all done.<br>
-**That is not the case** and seems to be wrong on multiple levels. Only after I found [this twitter post](TODO) from 20TODO and rewatched [Alex's SyScan'14 talk](https://www.youtube.com/watch?v=UNpL5csYC1E) once again (I re-watched this at least 20 times during my research, thank you Alex and SyScan !!) I came to what I currently believe is the right track. Let me first spot the errors in my initial believes before bundling the right course of actions:
-- [AlpcInitializeMessageAttribute](TODO) doesn't do shit for you, it really only clears the `ValidAttributes` flag and sets the `AllocatedAttributes` flag according to your specified message attributes (so no kernel magic filling in data at all).<br>
+Looking at this I initially thought you call the function [AlpcInitializeMessageAttribute](https://github.com/csandker/InterProcessCommunication-Samples/blob/master/ALPC/CPP-ALPC-Basic-Client-Server/CPP-Util/ALPC.h#L292-L298) give it a reference to the above structure and the flag for the message attribute you want to send (all attributes are referenced by a flag value, [here's the list from my code](https://github.com/csandker/InterProcessCommunication-Samples/blob/master/ALPC/CPP-ALPC-Basic-Client-Server/CPP-Util/ALPC.h#L12-L23)) and the kernel then sets it all up for you. You then put the referenced structure into [NtAlpcSendWaitReceivePort](https://github.com/csandker/InterProcessCommunication-Samples/blob/master/ALPC/CPP-ALPC-Basic-Client-Server/CPP-Util/ALPC.h#L322-L332), repeat the process for every message you want to send and be all done.<br>
+**That is not the case** and seems to be wrong on multiple levels. Only after I found [this twitter post](https://twitter.com/hakril/status/1270835298944061441?s=20&t=CAlLQn_OV93l-glw-6JrXg) from 2020 and rewatched [Alex's SyScan'14 talk](https://www.youtube.com/watch?v=UNpL5csYC1E) once again (I re-watched this at least 20 times during my research) I came to what I currently believe is the right track. Let me first spot the errors in my initial believes before bundling the right course of actions:
+- [AlpcInitializeMessageAttribute](https://github.com/csandker/InterProcessCommunication-Samples/blob/master/ALPC/CPP-ALPC-Basic-Client-Server/CPP-Util/ALPC.h#L292-L298) doesn't do shit for you, it really only clears the `ValidAttributes` flag and sets the `AllocatedAttributes` flag according to your specified message attributes (so no kernel magic filling in data at all).<br>
 *I'll have to admit I spotted this early on from reverse engineering the function, but for some time I still hoped it would do some more as the name of the function was so promising.*
 - To actually setup a message attribute properly you have to allocate the corresponding message structure and place it in a buffer after the *ALPC_MESSAGE_ATTRIBUTES* structure. So this is similar to an *ALPC_MESSAGE* where the actual message needs to be placed in a buffer after the *PORT_MESSAGE* structure.
 - It's not the kernel that sets the *ValidAttributes* attribute for your *ALPC_MESSAGE_ATTRIBUTES* structure, you have to set this yourself. I figured this out by playing around with the structure and for some time I thought this was just a weird workaround, because why would *I* need to set the `ValidAttributes` field? As far as I'm concerned my attributes are always valid and shouldn't it be the kernel's task to check if they are valid.<br>
 I took me another round of [Alex's SyScan'14 talk](https://www.youtube.com/watch?v=UNpL5csYC1E) to understand that..
-- You don't setup the message attributes for every call to [NtAlpcSendWaitReceivePort](TODO), you set all the message attributes up once and use the *ValidAttributes* flag before calling [NtAlpcSendWaitReceivePort](TODO) to specify which of all your set up attributes is valid for this very message you are sending now.
+- You don't setup the message attributes for every call to [NtAlpcSendWaitReceivePort](https://github.com/csandker/InterProcessCommunication-Samples/blob/master/ALPC/CPP-ALPC-Basic-Client-Server/CPP-Util/ALPC.h#L322-L332), you set all the message attributes up once and use the *ValidAttributes* flag before calling [NtAlpcSendWaitReceivePort](https://github.com/csandker/InterProcessCommunication-Samples/blob/master/ALPC/CPP-ALPC-Basic-Client-Server/CPP-Util/ALPC.h#L322-L332) to specify which of all your set up attributes is valid for this very message you are sending now.
 
 To bundle this into useful knowledge, **here's how sending message attributes does work** (in my current understanding):
 - First of all you have two buffers: A buffer for message attributes you want to receive (in my code named: `MsgAttrReceived`) and a buffer for message attributes you want to send (in my code named: `MsgAttrSend`).
@@ -328,7 +331,7 @@ PALPC_MESSAGE_ATTRIBUTES alloc_message_attribute(ULONG ulAttributeFlags) {
 	SIZE_T lpReqBufSize;
 	SIZE_T ulAllocBufSize;
 
-	ulAllocBufSize = AlpcGetHeaderSize(ulAttributeFlags); // this calculates: sizeof(ALPC_MESSAGE_ATTRIBUTES) + size of attribute structures
+	ulAllocBufSize = AlpcGetHeaderSize(ulAttributeFlags); // required size for specified attribues
 	lpBuffer = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, ulAllocBufSize);
 	if (GetLastError() != 0) {
 		wprintf(L"[-] Failed to allocate memory for ALPC Message attributes.\n");
@@ -336,7 +339,7 @@ PALPC_MESSAGE_ATTRIBUTES alloc_message_attribute(ULONG ulAttributeFlags) {
 	}
 	pAttributeBuffer = (PALPC_MESSAGE_ATTRIBUTES)lpBuffer;
 	// using this function to properly set the 'AllocatedAttributes' attribute
-    lSuccess = AlpcInitializeMessageAttribute(
+	lSuccess = AlpcInitializeMessageAttribute(
 		ulAttributeFlags,	// attributes
 		pAttributeBuffer,	// pointer to attributes structure
 		ulAllocBufSize,	// buffer size
@@ -351,7 +354,7 @@ PALPC_MESSAGE_ATTRIBUTES alloc_message_attribute(ULONG ulAttributeFlags) {
 	}
 }
 {% endhighlight %}
-\[[code](TODO)\]
+\[[code](https://github.com/csandker/InterProcessCommunication-Samples/blob/master/ALPC/CPP-ALPC-Basic-Client-Server/CPP-ALPC-Basic-Server/CPP-ALPC-Basic-Server.cpp#L54)\]
 - For the `MsgAttrSend` buffer two more steps are involved. You have to allocate a buffer that is large enough to hold *ALPC_MESSAGE_ATTRIBUTES* structure plus all the message attributes that you want to send (just as before). You have to set the `AllocatedAttributes` attribute (just as before), but then you also have to initialize the message attributes (meaning creating the necessary structures and fill those with valid values) that you want to send and then finally set the `ValidAttributes` attribute. In my code I wanted to send different attributes in different messages so here's how I did that:
 {% highlight c++ linenos %}
 // Allocate buffer and initialize the specified attributes
@@ -362,19 +365,20 @@ pMsgAttrSend->ValidAttributes |= ALPC_MESSAGE_SECURITY_ATTRIBUTE
 lSuccess = NtAlpcSendWaitReceivePort(hConnectionPort, ...)
 //...
 {% endhighlight %}
-\[[code](TODO)\]
+\[[code](https://github.com/csandker/InterProcessCommunication-Samples/blob/master/ALPC/CPP-ALPC-Basic-Client-Server/CPP-ALPC-Basic-Server/CPP-ALPC-Basic-Server.cpp#L106)\]
 - There is an additional catch with the sending attribute buffer: **You don't have to allocate or initialize the context attribute or the token attribute**. The kernel will always prepare these attributes and the receiver can always request them.
-- If you want to send multiple message attributes you will have a buffer that begins with the *ALPC_MESSAGE_ATTRIBUTES* followed by initialized structures for all the message attributes that you want. So how does the kernel know which attribute structure is which? The answer: You have to put the message attributes in a pre-defined order, which could be guessed from the value of their message attribute flags (from highest to lowest) or can also be found in the *_KALPC_MESSAGE_ATTRIBUTES* kernel structure:
-![KALPC_MESSAGE_ATTRIBUTES structure](/public/img/2021-01-17-Offensive-Windows-IPC-2-ALPC/ALPC_message_attribute_structure.png "_KALPC_MESSAGE_ATTRIBUTES kernel structure")
-- You might have noticed that the context and token attributes are not tracked in this structure and that is because the kernel will always provide these for any message, and hence does track them message independently. 
+- If you want to send multiple message attributes you will have a buffer that begins with the *ALPC_MESSAGE_ATTRIBUTES* followed by initialized structures for all the message attributes that you want.<br>
+So how does the kernel know which attribute structure is which? The answer: You have to put the message attributes in a pre-defined order, which could be guessed from the value of their message attribute flags (from [highest](https://github.com/csandker/InterProcessCommunication-Samples/blob/master/ALPC/CPP-ALPC-Basic-Client-Server/CPP-Util/ALPC.h#L38) to [lowest](https://github.com/csandker/InterProcessCommunication-Samples/blob/master/ALPC/CPP-ALPC-Basic-Client-Server/CPP-Util/ALPC.h#L44)) or can also be found in the *_KALPC_MESSAGE_ATTRIBUTES* kernel structure:
+![KALPC_MESSAGE_ATTRIBUTES structure](/public/img/2022-05-24-Offensive-Windows-IPC-3-ALPC/ALPC_message_attribute_structure.png "_KALPC_MESSAGE_ATTRIBUTES kernel structure")
+- You might have noticed that the **context** and **token attributes** are not tracked in this structure and that is because the kernel will always provide these for any message, and hence does track them message independently. 
 - Once send, the kernel will validate all the message attributes, fill in values (for example sequence numbers) or clear attributes that are invalid before offering these to the receiver.
 - Lastly the kernel will copy the attributes that the receiver specified as `AllocatedAttributes` into the receiver's `MsgAttrReceived` buffer, from where they can be fetched by the receiver.
 
-All of the above might, hopefully, also get a little clearer if you go through [my code](TODO) and match these statements against where and how I used message attributes.
+All of the above might, hopefully, also get a little clearer if you go through [my code](https://github.com/csandker/InterProcessCommunication-Samples/tree/master/ALPC/CPP-ALPC-Basic-Client-Server) and match these statements against where and how I used message attributes.
 
 So far we've introduced various components of ALPC to describe how the ALPC messaging system works and what an ALPC message looks like. Let me conclude this chapter by putting a few of these components into perspective. The above description and structure of an ALPC message describe what an ALPC message looks like to sender and receiver, but one should be aware that the kernel is adding a lot more information to this message - in fact it takes the provided parts and places them in a much bigger kernel message structure - as you can see below:  
 
-![KALPC_MESSAGE structure](/public/img/2021-01-17-Offensive-Windows-IPC-2-ALPC/ALPC_KALPC_MESSAGE.png "_KALPC_MESSAGE kernel structure")
+![KALPC_MESSAGE structure](/public/img/2022-05-24-Offensive-Windows-IPC-3-ALPC/ALPC_KALPC_MESSAGE.png "_KALPC_MESSAGE kernel structure")
 
 So the message here is: We've made a good understanding, but **there is a lot more under the hood** that we've not touched.
 
@@ -386,13 +390,13 @@ I have coded a sample ALPC client and server application as a playground to unde
 - I did not bother to take any effort to free buffers, messages or any other resources (which comes with a direct attack path, as described in section [Unfreed Message Objects](#unfreed-message-objects)).
 
 Although there aren't to many files to go through, let me point out a few notable lines of code:
-- You can find how I set up sample messages attributes [here](TODO).
-- You can find a call to `NtAlpcSendWaitReceivePort` that both sends and receives a message [here](TODO).
-- You can find ALPC port flags, message attribute flags, message and connection flags [here](TODO).
+- You can find how I set up sample messages attributes [here](https://github.com/csandker/InterProcessCommunication-Samples/blob/master/ALPC/CPP-ALPC-Basic-Client-Server/CPP-ALPC-Basic-Server/CPP-ALPC-Basic-Server.cpp#L102-L106).
+- You can find a call to `NtAlpcSendWaitReceivePort` that both sends and receives a message [here](https://github.com/csandker/InterProcessCommunication-Samples/blob/master/ALPC/CPP-ALPC-Basic-Client-Server/CPP-ALPC-Basic-Client/CPP-ALPC-Basic-Client.cpp#L132-L141).
+- You can find ALPC port flags, message attribute flags, message and connection flags [here](https://github.com/csandker/InterProcessCommunication-Samples/blob/master/ALPC/CPP-ALPC-Basic-Client-Server/CPP-Util/ALPC.h#L12-L61).
 
 And then finally here is what it looks like:
 
-![Sample ALPC Client and Server Applications](/public/img/2021-01-17-Offensive-Windows-IPC-2-ALPC/ALPC_Sample_Client-Server.png "Sample ALPC Client and Server Applications")
+![Sample ALPC Client and Server Applications](/public/img/2022-05-24-Offensive-Windows-IPC-3-ALPC/ALPC_Sample_Client-Server.png "Sample ALPC Client and Server Applications")
 
 ## Attack Surface
 
@@ -413,29 +417,29 @@ There are generally three routes that came to my mind of how to identify such pr
 All of these ways could be interesting, so let's have a look at them...
 
 **Find ALPC port objects**<br>
-We've already seen the most straight forward way to identify ALPC port objects at the beginning of this post, which is to fire up [WinObj](https://docs.microsoft.com/en-us/sysinternals/downloads/winobj) and spot ALPC objects by the 'Type' column. WinObj can't give us more details so we head over to a [WinDbg](TODO) kernel debugger to inspect this ALPC port object:
+We've already seen the most straight forward way to identify ALPC port objects at the beginning of this post, which is to fire up [WinObj](https://docs.microsoft.com/en-us/sysinternals/downloads/winobj) and spot ALPC objects by the 'Type' column. WinObj can't give us more details so we head over to a [WinDbg](https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/debugger-download-tools) kernel debugger to inspect this ALPC port object:
 
-![Inspect_AlpcPortObject_WinDbg](/public/img/2021-01-17-Offensive-Windows-IPC-2-ALPC/Inspect_AlpcPortObject_WinDbg.svg "Inspecting ALPC port objects with WinDbg")
+![Inspect_AlpcPortObject_WinDbg](/public/img/2022-05-24-Offensive-Windows-IPC-3-ALPC/Inspect_AlpcPortObject_WinDbg.svg "Inspecting ALPC port objects with WinDbg")
 
-In the above commands we used Windbg's [!object](TODO) command to query the object manager for the *named* object in the specified path. This implicitly already told us that this ALPC port has to be an **ALPC connection port**, because communications ports are not named. In turn we can conclude that we can use [WinObj](https://docs.microsoft.com/en-us/sysinternals/downloads/winobj) only to find **ALPC connection ports** and through these *only* ALPC server processes.<br>
-Speaking of server processes: As shown above, one can use [WinDbg's](TODO) undocumented `!alpc` command to display information about the ALPC port that we just identified. The output includes - alongside with a lot of other useful information, the owning server process of the port, which in this case is *svchost.exe*.<br>
+In the above commands we used Windbg's [!object](https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/-object) command to query the object manager for the *named* object in the specified path. This implicitly already told us that this ALPC port has to be an **ALPC connection port**, because communications ports are not named. In turn we can conclude that we can use [WinObj](https://docs.microsoft.com/en-us/sysinternals/downloads/winobj) only to find **ALPC connection ports** and through these *only* ALPC server processes.<br>
+Speaking of server processes: As shown above, one can use [WinDbg's](https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/debugger-download-tools) undocumented `!alpc` command to display information about the ALPC port that we just identified. The output includes - alongside with a lot of other useful information, the owning server process of the port, which in this case is *svchost.exe*.<br>
 Now that we know the address of the ALPC Port object we can use the `!alpc` command once again to display the active connections for this ALPC connection port:
 
-![WinDbg_alpc_show_connections](/public/img/2021-01-17-Offensive-Windows-IPC-2-ALPC/WinDbg_alpc_show_connections.png "Show ALPC port connections in WinDbg")
+![WinDbg_alpc_show_connections](/public/img/2022-05-24-Offensive-Windows-IPC-3-ALPC/WinDbg_alpc_show_connections.png "Show ALPC port connections in WinDbg")
 
 *Side note: The !alpc Windbg command is undocumented, but the outdated !lpc command, which existed in the LPC days, is documented [here](https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/-lpc) and has a timestamp from December 2021. This documentation page does mention that the !lpc command is outdated and that the !alpc command should be used instead, but the !alpc command syntax and options are completely different. But to be fair the !alpc command syntax is displayed in WinDbg if you enter any invalid !alpc command:*
 
-![WinDbg_alpc_command_syntax](/public/img/2021-01-17-Offensive-Windows-IPC-2-ALPC/WinDbg_alpc_command_syntax.png "ALPC commands in WinDbg")
+![WinDbg_alpc_command_syntax](/public/img/2022-05-24-Offensive-Windows-IPC-3-ALPC/WinDbg_alpc_command_syntax.png "ALPC commands in WinDbg")
 
-Thanks to [James Forshaw](TODO) and his [NtObjectManager in .NET](https://github.com/googleprojectzero/sandbox-attacksurface-analysis-tools/tree/25b183136e9a44ed148a0616875d83d785ef46de/NtObjectManager) we can also easily query the NtObjectManager in PowerShell to search for ALPC port objects, and even better [James](TODO) already provided the wrapper function for this via [Get-AccessibleAlpcPort](https://github.com/googleprojectzero/sandbox-attacksurface-analysis-tools/blob/25b183136e9a44ed148a0616875d83d785ef46de/NtObjectManager/RpcFunctions.ps1#L49).
+Thanks to [James Forshaw](https://twitter.com/tiraniddo) and his [NtObjectManager in .NET](https://github.com/googleprojectzero/sandbox-attacksurface-analysis-tools/tree/25b183136e9a44ed148a0616875d83d785ef46de/NtObjectManager) we can also easily query the NtObjectManager in PowerShell to search for ALPC port objects, and even better [James](https://twitter.com/tiraniddo) already provided the wrapper function for this via [Get-AccessibleAlpcPort](https://github.com/googleprojectzero/sandbox-attacksurface-analysis-tools/blob/25b183136e9a44ed148a0616875d83d785ef46de/NtObjectManager/RpcFunctions.ps1#L49).
 
-![Get-AccessibleAlpcPort](/public/img/2021-01-17-Offensive-Windows-IPC-2-ALPC/Get-AccessibleAlpcPort.png "Get-AccessibleAlpcPort command output")
+![Get-AccessibleAlpcPort](/public/img/2022-05-24-Offensive-Windows-IPC-3-ALPC/Get-AccessibleAlpcPort.png "Get-AccessibleAlpcPort command output")
 
 **Find ALPC used in processes**<br>
 
 As always there are various ways to find ALPC port usage in processes, here are a few that came to mind:
 - Similar to approaches in previous posts ([here](https://csandker.io/2021/02/21/Offensive-Windows-IPC-2-RPC.html#rpc-servers)) one could use the [dumpbin.exe](https://docs.microsoft.com/en-us/cpp/build/reference/dumpbin-reference?view=msvc-170) utility to list imported functions of executables and search therein for ALPC specific function calls.
-- As the above approach works with executable files on disk, but not with running processes, one could transfer the method used by [dumpbin.exe](TODO) and parse the Import Address Table (IAT) of running processes to find ALPC specific function calls.
+- As the above approach works with executable files on disk, but not with running processes, one could transfer the method used by [dumpbin.exe](https://docs.microsoft.com/en-us/cpp/build/reference/dumpbin-reference?view=msvc-170) and parse the Import Address Table (IAT) of running processes to find ALPC specific function calls.
 - One could attach to running processes, query the open handles for this process and filter for those handles that point to ALPC ports. 
 
 Once [dumpbin.exe](https://docs.microsoft.com/en-us/cpp/build/reference/dumpbin-reference?view=msvc-170) is installed, which for examples comes with the Visual Studio C++ development suite, the following two PowerShell one-liners could be used to find *.exe* and *.dll* files that create or connec to an ALPC port: 
@@ -447,39 +451,39 @@ Get-ChildItem -Path "C:\Windows\System32\" -Include ('*.exe', '*.dll') -Recurse 
 Get-ChildItem -Path "C:\Windows\System32\" -Include ('*.exe', '*.dll') -Recurse -ErrorAction SilentlyContinue | % { $out=$(C:\"Program Files (x86)"\"Microsoft Visual Studio 14.0"\VC\bin\dumpbin.exe /IMPORTS:ntdll.dll $_.VersionInfo.FileName); If($out -like "*NtAlpcConnectPor*"){ Write-Host "[+] Executable connecting to ALPC Port: $($_.VersionInfo.FileName)"; Write-Output "[+] $($_.VersionInfo.FileName)`n`n $($out|%{"$_`n"})" | Out-File -FilePath NtAlpcConnectPort.txt -Append } }
 {% endhighlight %}
 
-![AlpcProcesses_via_Dumpbin](/public/img/2021-01-17-Offensive-Windows-IPC-2-ALPC/AlpcProcesses_via_Dumpbin.png "Executables using ALPC functionality")
+![AlpcProcesses_via_Dumpbin](/public/img/2022-05-24-Offensive-Windows-IPC-3-ALPC/AlpcProcesses_via_Dumpbin.png "Executables using ALPC functionality")
 
-I did not code the 2nd option (parsing the IAT) - if you know a tool that does this [let me know](TODO-TWITTER-LINK), but there is an easy, but *very slow* way to tackle option number 3 (find ALPC handles in processes) using the following WinDbg command: `!handle 0 2 0 ALPC Port`
+I did not code the 2nd option (parsing the IAT) - if you know a tool that does this [let me know](https://twitter.com/0xcsandker), but there is an easy, but *very slow* way to tackle option number 3 (find ALPC handles in processes) using the following WinDbg command: `!handle 0 2 0 ALPC Port`
 
-![Identify_ALPCPorts_via_WindbgHandle](/public/img/2021-01-17-Offensive-Windows-IPC-2-ALPC/Identify_ALPCPorts_via_WindbgHandle.png "Identify handles to ALPC port objects using WinDbg")
+![Identify_ALPCPorts_via_WindbgHandle](/public/img/2022-05-24-Offensive-Windows-IPC-3-ALPC/Identify_ALPCPorts_via_WindbgHandle.png "Identify handles to ALPC port objects using WinDbg")
 
 Be aware that this is very slow and will probably take a few hours to complete (I stopped after 10 minutes and only got around 18 handles).<br>
-But once again thanks to [James Forshaw](TODO) and his [NtApiDotNet](https://github.com/googleprojectzero/sandbox-attacksurface-analysis-tools/tree/main/NtApiDotNet) there is any easier way to code this yourself and speed up this process, plus we can also get some interesting ALPC stats...<br>
-*You can find that tool [here](TODO)*
+But once again thanks to [James Forshaw](https://twitter.com/tiraniddo) and his [NtApiDotNet](https://github.com/googleprojectzero/sandbox-attacksurface-analysis-tools/tree/main/NtApiDotNet) there is any easier way to code this yourself and speed up this process, plus we can also get some interesting ALPC stats...<br>
+*You can find that tool [here](https://github.com/csandker/InterProcessCommunication-Samples/tree/master/ALPC/CS-AlpcProcessHandles)*
 
-![AlpcProcessHandles.svg](/public/img/2021-01-17-Offensive-Windows-IPC-2-ALPC/AlpcProcessHandles.svg "Identify handles to ALPC port objects using NtApiDotNet")
+![AlpcProcessHandles.svg](/public/img/2022-05-24-Offensive-Windows-IPC-3-ALPC/AlpcProcessHandles.svg "Identify handles to ALPC port objects using NtApiDotNet")
 
 Note that this program does not run in kernel land, so I'd expect better results with the WinDbg command, but it does its job to list some ALPC ports used by various processes. By iterating over all processes that we have access to, we can also calculate some basic stats about ALPC usage, as shown above. These numbers are not 100% accurate, but with - on average - around 14 ALPC communication port handles used per process we can definitely conclude that ALPC is used quite frequently within Windows.
 
 Once you identify a process that sounds like an interesting target WinDbg can be used again to dig deeper ...
 
-![AlpcProcess_via_Windbg](/public/img/2021-01-17-Offensive-Windows-IPC-2-ALPC/AlpcProcess_via_Windbg.png "Find ALPC port objects in processes using WinDbg")
+![AlpcProcess_via_Windbg](/public/img/2022-05-24-Offensive-Windows-IPC-3-ALPC/AlpcProcess_via_Windbg.png "Find ALPC port objects in processes using WinDbg")
 
 **Use Event Tracing For Windows**<br>
 
-Although ALPC is undocumented a [few ALPCs events](https://docs.microsoft.com/en-us/windows/win32/etw/alpc) are exposed as Windows events that can be captured through Event Tracing for Windows (ETW). One of the tools that helps with ALPC events is [ProcMonXv2](https://github.com/zodiacon/ProcMonXv2) by [zodiacon](TODO).
+Although ALPC is undocumented a [few ALPCs events](https://docs.microsoft.com/en-us/windows/win32/etw/alpc) are exposed as Windows events that can be captured through Event Tracing for Windows (ETW). One of the tools that helps with ALPC events is [ProcMonXv2](https://github.com/zodiacon/ProcMonXv2) by [zodiacon](https://twitter.com/zodiacon).
 
-![ALPC via ProcMonXv2](/public/img/2021-01-17-Offensive-Windows-IPC-2-ALPC/ALPC_via_ProcMonXv2.png "Identify ALPC communications with ETW using ProcMonXv2")
+![ALPC via ProcMonXv2](/public/img/2022-05-24-Offensive-Windows-IPC-3-ALPC/ALPC_via_ProcMonXv2.png "Identify ALPC communications with ETW using ProcMonXv2")
 
 After a few seconds of filtering for the five exposed ALPC events we get over 1000 events, another indication that ALPC is used quite frequently. But apart from that there is not much that ETW can offer in terms of insights into the ALPC communication channels, but anyhow, it did what it was intended to do: Identify ALPC targets.
 
 ### Impersonation and Non-Impersonation
 
-As with the previous post of the series (see [here](TODO) & [here](TODO)) one interesting attack vector is impersonation of another party.<br>
+As with the previous post of the series (see [here](/2021/02/21/Offensive-Windows-IPC-2-RPC.html#client-impersonation) & [here](/2021/01/10/Offensive-Windows-IPC-1-NamedPipes.html#impersonating-a-named-pipe-client)) one interesting attack vector is impersonation of another party.<br>
 *As last time, I'm not going to cover Impersonation again, but you'll find all the explanation that you'll need in the in the [Impersonation section of the Named Pipe Post](2021/01/10/Offensive-Windows-IPC-1-NamedPipes.html#impersonation).*<br>
-For ALPC communication the impersonation routines are bound to messages, which means that both client and server (aka. each communicating party) can impersonate the user on the other side. However, in order to allow for impersonation the impersonated communication partner has to allow to for impersonation to happen AND the impersonating communication partner needs to hold the [SeImpersonate](TODO) privilege (it's still a secured communication channel, right?)...<br>
+For ALPC communication the impersonation routines are bound to messages, which means that both client and server (aka. each communicating party) can impersonate the user on the other side. However, in order to allow for impersonation the impersonated communication partner has to allow to for impersonation to happen AND the impersonating communication partner needs to hold the [SeImpersonate](https://docs.microsoft.com/en-us/windows/win32/secauthz/privilege-constants) privilege (it's still a secured communication channel, right?)...<br>
 Looking at the code there seem to be two options to fulfil the first condition, which is to allow being impersonated:
-1. The first option: Through the `PortAttributes`, e.g. like this:
+- The first option: Through the `PortAttributes`, e.g. like this:
 {% highlight c++ linenos %}
 // QOS
 SecurityQos.ImpersonationLevel = SecurityImpersonation;
@@ -490,7 +494,7 @@ SecurityQos.Length = sizeof(SecurityQos);
 PortAttributes.SecurityQos = SecurityQos;
 PortAttributes.Flags = ALPC_PORTFLG_ALLOWIMPERSONATION;
 {% endhighlight %}
-2. The second option: Through the `ALPC_MESSAGE_SECURITY_ATTRIBUTE` message attribute
+- The second option: Through the `ALPC_MESSAGE_SECURITY_ATTRIBUTE` message attribute
 {% highlight c++ linenos %}
 pMsgAttrSend = setup_sample_message_attributes(hSrvCommPort, NULL, ALPC_MESSAGE_SECURITY_ATTRIBUTE); // setup security attribute
 pMsgAttrSend->ValidAttributes |= ALPC_MESSAGE_SECURITY_ATTRIBUTE; // specify it to be valid for the next message
@@ -505,13 +509,13 @@ However, there is a catch:
 I've looked at both routes: A server impersonating a client and a client impersonating a server.<br>
 My first path was finding clients attempting to connect to a server port that does not exist in order to check for impersonation conditions. I tried various methods, but so far I haven't figured a great way to identify such clients. I managed to use breakpoints in the kernel to manually spot some cases, but so far couldn't find any interesting ones that would allow for client impersonation. Below is an example of the "ApplicationFrameHost.exe" trying to connect to an ALPC port that does not exist, which I could catch with my sample server, however, the process does not allow impersonation (and the application runs as my current user)...
 
-![Client Impersonation Attempt](/public/img/2021-01-17-Offensive-Windows-IPC-2-ALPC/Client_Impersonation_Attempt.png "Client impersonation attempt")
+![Client Impersonation Attempt](/public/img/2022-05-24-Offensive-Windows-IPC-3-ALPC/Client_Impersonation_Attempt.png "Client impersonation attempt")
 
 Not a successful impersonation attempt, but at least it proves the idea.
 
 Onto the other path: I located a bunch of ALPC connection ports using [Get-AccessibleAlpcPort](https://github.com/googleprojectzero/sandbox-attacksurface-analysis-tools/blob/25b183136e9a44ed148a0616875d83d785ef46de/NtObjectManager/RpcFunctions.ps1#L49) as shown previously and instructed my ALPC client to connect to these in order to verify whether these a) allow me to connect, b) send me any actual message back and c) send impersonation message attributes along with a message. For all of the ALPC connection ports I checked at best I got some short initialization message with an *ALPC_MESSAGE_CONTEXT_ATTRIBUTE* back, which is not useful for impersonation, but at least once again it showcases the idea here:
 
-![Server Impersonation Attempt](/public/img/2021-01-17-Offensive-Windows-IPC-2-ALPC//Server_Impersonation_Attempt.png "Server impersonation attempt")
+![Server Impersonation Attempt](/public/img/2022-05-24-Offensive-Windows-IPC-3-ALPC//Server_Impersonation_Attempt.png "Server impersonation attempt")
 
 **Server Non-Impersonation**
 
@@ -527,10 +531,11 @@ As of now I can't think of a good way of automating or semi-automating the proce
 
 ### Unfreed Message Objects
 
-As mentioned in the [ALPC Message Attributes section](#ALPC_Message_Attributes) there are several message attributes that a client or server can send along with a message. One of these is the *ALPC_DATA_VIEW_ATTR* attribute that can be used to send information about a mapped view to the other communication party. To recall: This could for example be used to store larger messages or data in a shared view and send a handle to that shared view to the other party instead of using the *double-buffer messaging mechanism* to copy data from one memory space into another.<br>
+As mentioned in the [ALPC Message Attributes section](#ALPC_Message_Attributes) there are several message attributes that a client or server can send along with a message. One of these is the *ALPC_DATA_VIEW_ATTR* attribute that can be used to send information about a mapped view to the other communication party.<br>
+To recall: This could for example be used to store larger messages or data in a shared view and send a handle to that shared view to the other party instead of using the *double-buffer messaging mechanism* to copy data from one memory space into another.<br>
 The interesting bit here is that a shared view (or section as its called in Windows) is mapped into the process space of the receiver when being referenced in an *ALPC_DATA_VIEW_ATTR* attribute. The receiver could then do something with this section (if they are aware of it being mapped), but in the end the receiver of the message has to ensure that a mapped view is freed from its own memory space, and this requires a certain number of steps, which might not be followed correctly. If a receiver fails to free a mapped view, e.g. because it never expected to receive a view in the first place, the sender can send more and more views with arbitrary data to fill the receiver's memory space with views of arbitrary data, which comes down to a [Heap Spray](https://en.wikipedia.org/wiki/Heap_spraying) attack.
 
-I only learned about this ALPC attack vector by (once again) listening to [Alex Ionescu's SyScan ALPC Talk](TODO) and I think there is no way to better phrase and showcase how this attack vector works then he does in this talk, so I'm not going to copy his content and words and just point you to [minute 32 of his talk](https://www.youtube.com/watch?v=UNpL5csYC1E#t=32m13s), where he starts to explain the attack. Also you want to see [minute 53 of his talk](https://www.youtube.com/watch?v=UNpL5csYC1E#t=53m0s) for a demo of his heap spray attack.
+I only learned about this ALPC attack vector by (once again) listening to [Alex Ionescu's SyScan ALPC Talk](https://www.youtube.com/watch?v=UNpL5csYC1E) and I think there is no way to better phrase and showcase how this attack vector works then he does in this talk, so I'm not going to copy his content and words and just point you to [minute 32 of his talk](https://www.youtube.com/watch?v=UNpL5csYC1E#t=32m13s), where he starts to explain the attack. Also you want to see [minute 53 of his talk](https://www.youtube.com/watch?v=UNpL5csYC1E#t=53m0s) for a demo of his heap spray attack.
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/UNpL5csYC1E?start=3180" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe><br>
 
@@ -541,17 +546,17 @@ Finding vulnerable targets for this type of attacks is - once again - a case-by-
 - Identify how a target process handles ALPC message attributes and especially if ALPC message attributes are freed
 - Get creative about options to abuse non-freed resources, where the obvious PoC option would be to exhaust process memory space 
 
-Of course, another valid approach would be to pick a target and just flood it with views (as an example) to check if the result is a lot of shared memory regions being allocated within the target's address space. A useful tool to inspect the memory regions of a process is [VMMap](TODO) from the [Sysinternals](https://docs.microsoft.com/en-us/sysinternals/) suite, which is what I've used as a PoC below.<br>
+Of course, another valid approach would be to pick a target and just flood it with views (as an example) to check if the result is a lot of shared memory regions being allocated within the target's address space. A useful tool to inspect the memory regions of a process is [VMMap](https://docs.microsoft.com/en-us/sysinternals/downloads/vmmap) from the [Sysinternals](https://docs.microsoft.com/en-us/sysinternals/) suite, which is what I've used as a PoC below.<br>
 As an example I've flooded my ALPC sample server with 20kb views as shown below:
 
-![ALPC_Unfreed_Views.png](/public/img/2021-01-17-Offensive-Windows-IPC-2-ALPC/ALPC_Unfreed_Views.png "Memory spraying a vulnerable ALPC application")
+![ALPC_Unfreed_Views.png](/public/img/2022-05-24-Offensive-Windows-IPC-3-ALPC/ALPC_Unfreed_Views.png "Memory spraying a vulnerable ALPC application")
 
 This does work because I did not bother to make *any* effort to free *any* allocated attributes in my sample ALPC server.<br>
-I've also randomly picked a few, like four or five, of Microsoft's ALPC processes (that I identified using the above shown techniques), but the ones I picked do not seem to make the same mistake.<br>
+I've also randomly picked a few - *like four or five* - of Microsoft's ALPC processes (that I identified using the above shown techniques), but the ones I picked do not seem to make the same mistake.<br>
 Honestly, it might be valuable to check more processes for this, but as of know I have no use for this kind of bug other than crashing a process, which - if critical enough - might crash the OS as well (Denial of Service).
 
 **Interesting Side note**:<br>
-In his talk [Alex Ionescu](TODO) mentions that the Windows Memory Manager allocates memory regions on 64kb boundaries, which means that whenever you allocate memory the Memory Manager places this memory at the start of the next available 64kb block. Which allows you, as an attacker, to create and map views of arbitrary size (preferably smaller than 64kb to make the memory exhaustion efficient) and the OS will map the view in the server's memory and mark 64kb-YourViewSize as unusable memory, because it needs to align all memory allocation to 64kb boundaries. You want to see [minute 54 of Alex's talk](https://www.youtube.com/watch?v=UNpL5csYC1E#t=54m43s) to get a visual and verbal explanation of this effect.<br>
+In his talk [Alex Ionescu](https://twitter.com/aionescu) mentions that the Windows Memory Manager allocates memory regions on 64kb boundaries, which means that whenever you allocate memory the Memory Manager places this memory at the start of the next available 64kb block. Which allows you, as an attacker, to create and map views of arbitrary size (preferably smaller than 64kb to make the memory exhaustion efficient) and the OS will map the view in the server's memory and mark 64kb-YourViewSize as unusable memory, because it needs to align all memory allocation to 64kb boundaries. You want to see [minute 54 of Alex's talk](https://www.youtube.com/watch?v=UNpL5csYC1E#t=54m43s) to get a visual and verbal explanation of this effect.<br>
 [Raymond Chen](https://twitter.com/ChenCravat) explains the reasoning behind the 64kb granularity [here](https://devblogs.microsoft.com/oldnewthing/20031008-00/?p=42223).
 
 At the end of the day memory exhaustion attacks are of course not the only viable option to use a memory/heap spray primitive, which people smarter than me can turn into a exploit path...
@@ -562,27 +567,27 @@ ALPC is undocumented and quite complex, but as a motivational benefit: Vulnerabi
 
 There is much more to ALPC than I have covered in this post. Potentially one could write an entire book about ALPC, but I hope to have at least touched the basics to get you started in getting interested in ALPC.
 
-To get a first "Where and how much ALPC is in my PC"-impression I recommend starting [ProcMonXv2](https://github.com/zodiacon/ProcMonXv2) (by [zodiacon](TODO)) on your host to see thousands of ALPC events firing in a few seconds.
+To get a first "Where and how much ALPC is in my PC"-impression I recommend starting [ProcMonXv2](https://github.com/zodiacon/ProcMonXv2) (by [zodiacon](https://twitter.com/zodiacon)) on your host to see thousands of ALPC events firing in a few seconds.
 
-![ALPC via ProcMonXv2](/public/img/2021-01-17-Offensive-Windows-IPC-2-ALPC/ALPC_via_ProcMonXv2.png "Identify ALPC communication using ProcMonXv2")
+![ALPC via ProcMonXv2](/public/img/2022-05-24-Offensive-Windows-IPC-3-ALPC/ALPC_via_ProcMonXv2.png "Identify ALPC communication using ProcMonXv2")
 
-To continue from there you might find my [ALPC client and server code](TDO) useful to play around with ALPC processes and to identify & exploit vulnerabilities within ALPC. If you find yourself coding and/or investigating ALPC make sure to check out the [reference](#references) section for input on how others dealt with ALPC.
+To continue from there you might find my [ALPC client and server code](https://github.com/csandker/InterProcessCommunication-Samples/tree/master/ALPC/CPP-ALPC-Basic-Client-Server) useful to play around with ALPC processes and to identify & exploit vulnerabilities within ALPC. If you find yourself coding and/or investigating ALPC make sure to check out the [reference](#references) section for input on how others dealt with ALPC.
 
-Finally as a last word and to conclude my recommendation from the beginning: If you feel like you get another voice & perspective on ALPC, I highly recommend to grab another beverage and an enjoy the following hour of [Alex Ionescu](TODO) talk about LPC, RPC and ALPC:
+Finally as a last word and to conclude my recommendation from the beginning: If you feel like you could hear another voice & perspective on ALPC, I highly recommend to grab another beverage and an enjoy the following hour of [Alex Ionescu](https://twitter.com/aionescu) talk about LPC, RPC and ALPC:
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/UNpL5csYC1E" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 ## Appendix A: The use of connection and communication ports
 
-When looking into ALPC I initially thought that a server listens on its **communication port**, which it receives when accepting a client connection via [NtAlpcConnectPort](TODO). This would have made sense, since it's called <u>communication</u> port. However, listening for incoming messages on the server's communication port resulted in a blocking call to [NtAlpcSendWaitReceivePort](TODO) that never came back with a message.<br>
-So my assumption about the server's ALPC *communication* port must have been wrong, which puzzled me, since the client on the other side does get messages on his communication port. I hung on this question for a while until I reached out to [Alex Ionescu](TODO) to ask him about this and I learned that my assumption was indeed incorrect, but to be more precise it has become incorrect over time: Alex explained to me that the idea I had (server listens and sends messages on its communication port) was the way that LPC (the predecessor of ALPC) was designed to work. This design however would force you to listen on a growing number of communication ports with each new client the server accepts. Imagine a server has 100 clients talking to it, then the server needs to listen on 100 communication ports to get client messages, which often resulted in creating 100 threads, where each thread would communicate with a different client. This was deemed inefficient and a much more efficient solution was to have a single thread listening (and sending) on the server's connection port, where all messages are being send to this connection port.<br>
-That in turn means: A server accepts a client connection, receives a handle to a client's communication port, but still uses the server's connection port handle in calls to [NtAlpcSendWaitReceivePort](TODO) in order to send and receive messages from all connected clients.
+When looking into ALPC I initially thought that a server listens on its **communication port**, which it receives when accepting a client connection via [NtAlpcConnectPort](https://github.com/csandker/InterProcessCommunication-Samples/blob/master/ALPC/CPP-ALPC-Basic-Client-Server/CPP-Util/ALPC.h#L307-L320). This would have made sense, since it's called <u>communication</u> port. However, listening for incoming messages on the server's communication port resulted in a blocking call to [NtAlpcSendWaitReceivePort](https://github.com/csandker/InterProcessCommunication-Samples/blob/master/ALPC/CPP-ALPC-Basic-Client-Server/CPP-Util/ALPC.h#L322-L332) that never came back with a message.<br>
+So my assumption about the server's ALPC *communication* port must have been wrong, which puzzled me, since the client on the other side does get messages on his communication port. I hung on this question for a while until I reached out to [Alex Ionescu](https://twitter.com/aionescu) to ask him about this and I learned that my assumption was indeed incorrect, but to be more precise it has become incorrect over time: Alex explained to me that the idea I had (server listens and sends messages on its communication port) was the way that LPC (the predecessor of ALPC) was designed to work. This design however would force you to listen on a growing number of communication ports with each new client the server accepts. Imagine a server has 100 clients talking to it, then the server needs to listen on 100 communication ports to get client messages, which often resulted in creating 100 threads, where each thread would communicate with a different client. This was deemed inefficient and a much more efficient solution was to have a single thread listening (and sending) on the server's connection port, where all messages are being send to this connection port.<br>
+That in turn means: A server accepts a client connection, receives a handle to a client's communication port, but still uses the server's connection port handle in calls to [NtAlpcSendWaitReceivePort](https://github.com/csandker/InterProcessCommunication-Samples/blob/master/ALPC/CPP-ALPC-Basic-Client-Server/CPP-Util/ALPC.h#L322-L332) in order to send and receive messages from all connected clients.
 
-Does that mean that the server's communication port is obsolete then (and this was my follow up question to [Alex](TODO))? His answer, once again, made perfect sense and cleared my understanding of ALPC: A server's per client communication port is used internally by the OS to tie a message, send by a specific client, to this client's specific communication port. This allows the OS to tie a special context structure to each client communication port that can be used to identify the client. This special context structure is the *PortContext*, which can be any arbitrary structure, that can be passed to [NtAlpcAcceptConnectPort](TODO) and which can later be extracted from the any message with the *ALPC_CONTEXT_ATTR* message attribute.<br>
+Does that mean that the server's communication port is obsolete then (and this was my follow up question to [Alex](https://twitter.com/aionescu))? His answer, once again, made perfect sense and cleared my understanding of ALPC: A server's per client communication port is used internally by the OS to tie a message, send by a specific client, to this client's specific communication port. This allows the OS to tie a special context structure to each client communication port that can be used to identify the client. This special context structure is the *PortContext*, which can be any arbitrary structure, that can be passed to [NtAlpcAcceptConnectPort](https://github.com/csandker/InterProcessCommunication-Samples/blob/master/ALPC/CPP-ALPC-Basic-Client-Server/CPP-Util/ALPC.h#L307-L320) and which can later be extracted from the any message with the *ALPC_CONTEXT_ATTR* message attribute.<br>
 That means: When a server listens on its connection port it receives messages from all clients, but if it wants to know which client send the message, the server can get the port context structure (through the *ALPC_CONTEXT_ATTR* message attribute), that it assigned to this client upon accepting the connection, and the OS will fetch that context structure from the internally preserved client communication port. 
 
 This far we can conclude that the server's per-client communication port is still important for the OS and still has its place and role in the ALPC communication structure. That does, however, not answer the question why the server would actually need a handle to each-clients communication port (because the client's *PortContext* can be extracted from a message, which is received by using the connection port handle).<br>
-The answer here is Impersonation. When the server wants to impersonate a client it needs to pass the client's communication port to [NtAlpcImpersonateClientOfPort](TODO). The reason for this is that the security context information that are needed to perform the impersonation are bound (if allowed by the client) to the client's communication port. It would make no sense to attach these information to the connection port, because all clients use this connection port, whereas each client has it own unique communication port for each server.<br>
+The answer here is **impersonation**. When the server wants to impersonate a client it needs to pass the client's communication port to [NtAlpcImpersonateClientOfPort](https://github.com/csandker/InterProcessCommunication-Samples/blob/master/ALPC/CPP-ALPC-Basic-Client-Server/CPP-Util/ALPC.h#L352-L357). The reason for this is that the security context information that are needed to perform the impersonation are bound (if allowed by the client) to the client's communication port. It would make no sense to attach these information to the connection port, because all clients use this connection port, whereas each client has it own unique communication port for each server.<br>
 Therefore: If you want to impersonate your clients you want to keep each client's communication port handle.
 
 

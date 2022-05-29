@@ -214,7 +214,7 @@ RtlSecureZeroMemory(&pmReceived, sizeof(pmReceived));
 
 This message buffer has then been passed to the kernel in the call to `NtAlpcSendWaitReceivePort`, which copies the sending buffer into the receiving buffer on the other side.<br>
 We could also dig into the kernel to figure out how an ALPC message (send via message buffers) actually looks like. Reversing the `NtAlpcSendWaitReceivePort` leads us to the kernel function `AlpcpReceiveMessage`, which eventually calls - for our code path - into `AlpcpReadMessageData`, where the copying of the buffer happens.<br>
-*Side note: If you're interested in all the reversing details I left out here check out my follow up post (which I will release next week): [...COMING NEXT WEEK...](#)*
+*Side note: If you're interested in all the reversing details I left out here check out my follow up post: [Debugging and Reversing ALPC](/2022/05/29/Debugging-And-Reversing-ALPC.html)*
 
 At the end of this road you'll find a simple [RtlCopyMemory](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlcopymemory) call - which is just a macro for [memcpy](https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/memcpy-wmemcpy?view=msvc-170) - that copies a bunch of bytes from one memory space into another - it's not as fancy as one might have expected it, but that's what it is ¯\\_(ツ)_/¯.
 

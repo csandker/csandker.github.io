@@ -42,7 +42,7 @@ The following steps needs to be done:
 ![WinDbg Local Kernel Debugging](/public/img/2022-05-29-Debugging-and-Reversing-ALPC/WinDbg_LocalKernelDebugging.png "Local Kernel Debugging with WinDbg")
 
 **A note about the customized layout shown above**<br>
-In my case I like to have my debugging windows positioned and aligned in a certain way (and also have the colors mimic a dark theme). You can do all of that by starting WinDbg, open up and position all Windows the way you like them, change the coloring (if you want) under *View >> Options >> Colors* and finally save all your Workspace setup via *File >> Save Workspace to File*. Once done, you can open up your local kernel debugging WinDbg with your customized Workspace as follows: `.\windbg.exe -WF C:\Users\LocalAdm\Desktop\WinDbg_DefaultWorkspace.WEW -kl`<br>
+In my case I like to have my debugging windows positioned and aligned in a certain way (and also have the colors mimic a dark theme). You can do all of that by starting WinDbg, open up and position all Windows the way you like them, change the coloring (if you want) under *View >> Options >> Colors* and finally save all your Workspace setup via *File >> Save Workspace to File*. Once done, you can open up your local kernel debugging WinDbg with your customized Workspace as follows: `.\windbg.exe -WF <Path-To-File>.WEW -kl`<br>
 All WinDbg command line switches can be found [here](https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/windbg-command-line-options)
 
 **Setup remote kernel debugging**<br>

@@ -561,7 +561,7 @@ In his talk [Alex Ionescu](https://twitter.com/aionescu) mentions that the Windo
 
 At the end of the day memory exhaustion attacks are of course not the only viable option to use a memory/heap spray primitive, which people smarter than me can turn into a exploit path...
 
-## Conclousion
+## Conclusion
 
 ALPC is undocumented and quite complex, but as a motivational benefit: Vulnerabilities inside of ALPC can become very powerful as ALPC is ubiquitous within the Windows OS, all of the built-in high privileged processes use ALPC and due to its communication architecture it is an attractive target even from a sandbox perspective.
 

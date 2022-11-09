@@ -1,6 +1,7 @@
 ---
 layout: post
 title:  "Offensive Windows IPC Internals 3: ALPC"
+coverimg: "/public/img/2022-05-24-Offensive-Windows-IPC-3-ALPC/ALPC_Message_Flow.svg"
 date:   2022-05-24 10:00:00 +0200
 abstract: "After talking about two inter-process communication (IPC) protocols that can be uses remotely as well as locally, namely Named Pipes and RPC, with ALPC we're now looking at a technology that can only be used locally..."
 tags: IPC WinInternals

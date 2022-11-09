@@ -2,7 +2,7 @@
 layout: post
 title:  "A Windows Authorization Guide"
 date:   2018-06-14 10:00:00 +0200
-abstract: "Compared to Linux, the Window’s authorization process is quite complex and quite a few actors and objects are involved in this process. As a result, there a lot of terms and acronyms that must be known in order to understand and follow up on the topic. To get an idea of what is covered in this guide take a look on this overview of terms and acronyms..."
+abstract: "Compared to Linux, the Window's authorization process is quite complex and quite a few actors and objects are involved in this process. As a result, there a lot of terms and acronyms that must be known in order to understand and follow up on the topic. To get an idea of what is covered in this guide take a look on this overview of terms and acronyms..."
 tags: WinInternals
 ---
 
@@ -13,7 +13,7 @@ tags: WinInternals
 
 <hr>
 
-Compared to Linux, the Window’s authorization process is quite complex and quite a few actors and objects are involved in this process. As a result, there a lot of terms and acronyms that must be known in order to understand and follow up on the topic. To get an idea of what is covered in this guide take a look on this overview of terms and acronyms:
+Compared to Linux, the Window's authorization process is quite complex and quite a few actors and objects are involved in this process. As a result, there a lot of terms and acronyms that must be known in order to understand and follow up on the topic. To get an idea of what is covered in this guide take a look on this overview of terms and acronyms:
 
 ![Windows Authorization Buzz Words](/public/img/2018-06-14-AWindowsAuthorizationGuide/AuthAcronyms.png)
 

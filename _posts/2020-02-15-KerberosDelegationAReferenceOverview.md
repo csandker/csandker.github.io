@@ -2,6 +2,7 @@
 layout: post
 title:  "Kerberos Delegation: A Reference Overview"
 date:   2020-02-15 10:00:00 +0200
+lastupdate: 2021-08-20 10:00:00 +0200
 abstract: "There are 3 Delegation types: Unconstrained, Constrained and Resources Based. This post is will list the attributes used to define these types and outline attack paths to abuse misplaced delegation settings"
 tags: Kerberos
 ---

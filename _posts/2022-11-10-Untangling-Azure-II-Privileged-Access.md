@@ -123,7 +123,6 @@ Alright, that should be good enough. Let's map out all the learnings from above 
 Studying this figure should also re-enforce some of the constraints mentioned above, and a few additional ones. For example you should see that:
 
 - Groups can't own other objects
-- Directory Roles can't be assigned to groups (as far as I know)
 - Delegation-Type permission grants should not be relevant for mapping high privileged principals
 
 Aside from these constraints there are should be at least two open questions for anyone wanting to implement this.<br>

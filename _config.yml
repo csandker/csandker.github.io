@@ -23,6 +23,10 @@ twitter:
   user: 0xcsandker
   url: "https://twitter.com/0xcsandker"
 
+mastodon:
+  user: 0xcsandker
+  url: "https://infosec.exchange/@0xcsandker"
+
 github:
   user: csandker
   url: "https://github.com/csandker"

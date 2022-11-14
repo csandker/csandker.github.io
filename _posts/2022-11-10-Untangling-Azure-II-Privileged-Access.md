@@ -3,6 +3,7 @@ layout: post
 title:  "Untangling Azure Active Directory Permissions II: Privileged Access"
 coverimg: "/public/img/2022-11-10-Untangling-Azure-II-Privileged-Access/Azure_AD_high_privileged_access_map.png"
 date:   2022-11-10 10:00:00 +0200
+lastupdate: 2022-11-14 10:00:00 +0200
 abstract: "I've focused on using my enumeration learnings to automate the process of identifying high privileged principals in an Azure Active Directory Tenant..."
 tags: AzureActiveDirectory
 ---
@@ -61,6 +62,7 @@ Alright, let's add those **Directory Roles** into the picture:
 ![Second step in Azure Access Controls](/public/img/2022-11-10-Untangling-Azure-II-Privileged-Access/Azure_Access_Controls_2.png "Second step in Azure Access Controls")
 
 As you can see above, **Directory Roles can only be assigned to Users and Groups**, but not to Service Principals.<br>
+As a side note: If you want to add a Directory Role to a group, you have to make that decision when you create the group. Only during group creation you can set `isAssignableToRole` property, which is then immutable. Moreover, **the feature to assign a directory role to a group requires a Azure Premium P1 or P2 license**<br>
 If this is your first encounter with default and custom directory roles, you want these resource links in your back as a lookup reference:
 
 - [https://learn.microsoft.com/en-us/azure/active-directory/roles/permissions-reference](https://learn.microsoft.com/en-us/azure/active-directory/roles/permissions-reference)

@@ -4,7 +4,7 @@ title:  "Debugging and Reversing ALPC"
 date:   2022-05-29 10:00:00 +0200
 coverimg: "/public/img/2022-05-29-Debugging-and-Reversing-ALPC/IDA_NtlpcCreatePort.png"
 abstract: "This post is an addendum to my journey to discover and verify the internals of ALPC, which I've documented in Offensive Windows IPC Internals 3: ALPC. While preparing this blog I figured a second post, explaining the debugging steps I took to verify and discover ALPC behaviour, could be useful to all of us that are beginners in the field of reverse engineering and/or debugging."
-tags: IPC WinInternals Reversing
+tags: WinInternals Reversing
 ---
 
 ## Contents:

@@ -2,5 +2,5 @@ _site
 .sass-cache
 .jekyll-metadata
 Gemfile*
-Instructions.txt
+Instructions.md
 .vscode/

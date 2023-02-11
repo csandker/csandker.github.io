@@ -4,7 +4,7 @@ title:  "Kerberos Authentication: A Wrap Up"
 date:   2017-09-12 10:00:00 +0200
 lastupdate: 2021-07-16 10:00:00 +0200
 abstract: "This post is intended as a wrap-up to refresh/update your understanding of how Kerberos works in a Windows domain network..."
-tags: Kerberos Wrap-Up
+tags: Kerberos
 ---
 
 ## Contents:

@@ -4,7 +4,7 @@ title:	"Offensive Windows IPC Internals 2: RPC"
 coverimg: "/public/img/2021-02-21-Offensive-Windows-IPC-2-RPC/RPC_Communication_Flow.png"
 date:	2021-02-21 10:00:00 +0200
 abstract: "Remote Procedure Calls (RPC) is a technology to enable data communication between a client and a server across process and machine boundaries (network communication). Therefore RPC is an Inter Process Communication (IPC) technology..."
-tags: IPC WinInternals
+tags: WinInternals
 ---
 
 ## Contents:

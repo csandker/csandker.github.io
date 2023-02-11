@@ -5,7 +5,7 @@ date:   2020-02-10 10:00:00 +0200
 lastupdate: 2021-08-20 10:00:00 +0200
 abstract: "Delegation allows a server application to impersonate a client when the server connects to other network resources.<br>
 In other words: Delegation specifies the client's action to authorize a server in order to allow this server to impersonate itself (the client). "
-tags: Kerberos Wrap-Up
+tags: Kerberos
 ---
 
 ## Contents:

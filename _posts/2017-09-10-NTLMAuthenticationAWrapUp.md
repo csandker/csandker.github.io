@@ -3,7 +3,7 @@ layout: post
 title:  "NTLM Authentication: A Wrap Up"
 date:   2017-09-10 10:00:00 +0200
 abstract: "This post is intended as a wrap-up to refresh/update your understanding of how the NTLM authentication scheme works in a Windows domain network..."
-tags: NTLM Wrap-Up
+tags: NTLM
 ---
 
 ## Contents:

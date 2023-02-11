@@ -3,7 +3,7 @@ layout: post
 title:  "Offensive Windows IPC Internals 1: Named Pipes"
 date:   2021-01-10 10:00:00 +0200
 abstract: "Although the name might sound a bit odd Pipes are very basic and simple technology to enable communication and share data between two processes, where the term pipe simply describes ..."
-tags: IPC WinInternals
+tags: WinInternals
 ---
 
 ## Contents:

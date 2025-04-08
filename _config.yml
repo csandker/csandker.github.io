@@ -27,6 +27,10 @@ mastodon:
   user: 0xcsandker
   url: "https://infosec.exchange/@0xcsandker"
 
+bluesky:
+  user: 0xcsandker
+  url: "https://bsky.app/profile/0xcsandker.bsky.social"
+
 github:
   user: csandker
   url: "https://github.com/csandker"
